@@ -1,7 +1,7 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+import "./config/env.js";
 import Fastify from "fastify";
+import pool from "./db/index.js";
+
 
 const app = Fastify({
     logger: true
@@ -9,6 +9,11 @@ const app = Fastify({
 
 app.get("/", async () => {
     return { status: "ok" };
+});
+
+app.get("/db-test", async () => {
+    const result = await pool.query("SELECT NOW()");
+    return result.rows;
 });
 
 const start = async () => {
