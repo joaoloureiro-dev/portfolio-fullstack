@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt" class="scroll-smooth">
+
+<head>
+    <title>João Loureiro | Fullstack Developer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Fullstack Developer building scalable web applications">
+    <meta name="author" content="João Loureiro">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="João Loureiro Portfolio">
+    <meta property="og:description" content="Fullstack Developer • Node.js • PostgreSQL • JavaScript">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/public/assets/favicon/favicon-32x32.png">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="src/css/main.css">
+</head>
+
+<body>
+
+    <!-- Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-glow"></div>
+
+    <!-- LEFT -->
+    <header class="left">
+        <div class="left-content">
+            <h1>JOÃO LOUREIRO</h1>
+            <h2>Junior Fullstack Developer</h2>
+            <p>I BUILD SCALABLE WEB APPLICATIONS</p>
+
+            <nav aria-label="Main Navigation">
+                <ul>
+                    <li><a href="#about" class="active">About</a></li>
+                    <li><a href="#stack">Stack</a></li>
+                    <li><a href="#projects">Projects</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+
+            <div class="social">
+                <a href="https://github.com/joaoloureiro-dev" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-brands fa-linkedin"></i>
+                </a>
+                <a href="https://x.com/teuuser" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-brands fa-x-twitter"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- RIGHT -->
+    <main class="right">
+
+        <!-- ABOUT -->
+        <section id="about">
+            <h2>About Me</h2>
+
+            <p>
+                I’m a Junior Fullstack Developer focused on building scalable and performant web applications. I started
+                my
+                journey in 2026, driven by a strong interest in technology and problem-solving.
+            </p>
+
+            <p>
+                I enjoy turning ideas into real products, from frontend interfaces to backend systems. My focus is clean
+                architecture, performance and user-centered design.
+            </p>
+
+            <p>
+                Currently, I’m strengthening my skills in JavaScript, Node.js and PostgreSQL, with the goal of building
+                complete end-to-end digital solutions.
+            </p>
+
+            <p>
+                I value consistency, continuous learning and building real-world projects that solve practical problems.
+            </p>
+        </section>
+
+        <!-- STACK -->
+        <section id="stack">
+            <h2>Tech Stack</h2>
+
+            <div class="badges">
+                <img src="https://img.shields.io/badge/Node.js-0f0f0f?style=for-the-badge&logo=node.js&logoColor=ff7b00"
+                    alt="Node.js">
+                <img src="https://img.shields.io/badge/JavaScript-0f0f0f?style=for-the-badge&logo=javascript&logoColor=ff7b00"
+                    alt="JavaScript">
+                <img src="https://img.shields.io/badge/PostgreSQL-0f0f0f?style=for-the-badge&logo=postgresql&logoColor=ff7b00"
+                    alt="PostgreSQL">
+                <img src="https://img.shields.io/badge/HTML5-0f0f0f?style=for-the-badge&logo=html5&logoColor=ff7b00"
+                    alt="HTML5">
+                <img src="https://img.shields.io/badge/CSS3-0f0f0f?style=for-the-badge&logo=css3&logoColor=ff7b00"
+                    alt="CSS3">
+            </div>
+        </section>
+
+        <!-- PROJECTS -->
+        <section id="projects">
+            <h2>Projects</h2>
+
+            <div class="projects-grid">
+
+                <article class="project-card">
+                    <h3>
+                        Project One
+                        <a href="#" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </h3>
+                    <p>Resumo do projeto ou funcionalidade principal.</p>
+                    <div class="tech">HTML • CSS • JS</div>
+                </article>
+
+                <article class="project-card">
+                    <h3>
+                        Project Two
+                        <a href="#" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </h3>
+                    <p>COMING SOON</p>
+                    <div class="tech">React • Tailwind</div>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- CONTACT -->
+        <section id="contact">
+            <h2>Get In Touch</h2>
+
+            <form id="contact-form">
+
+                <!-- TURNSTILE -->
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAADJDr5u815mGOWa0" data-theme="dark">
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input id="name" name="name" type="text" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service">Service</label>
+                    <select id="service" name="service" required>
+                        <option value="">Select a service</option>
+                        <option value="website_dev">Website Development</option>
+                        <option value="bug_fix">Bug Fix / Error Correction</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="ecommerce">E-commerce</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="budget">Estimated Budget (€)</label>
+                    <select id="budget" name="budget" required>
+                        <option value="">Select budget</option>
+                        <option value="0-200">0€ - 200€</option>
+                        <option value="200-500">200€ - 500€</option>
+                        <option value="500-1000">500€ - 1000€</option>
+                        <option value="1000+">1000€+</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="urgency">Urgency</label>
+                    <select id="urgency" name="urgency" required>
+                        <option value="">Select urgency</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="normal">Normal</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Project Details</label>
+                    <textarea id="message" name="message" rows="4"></textarea>
+                </div>
+
+                <button type="submit" aria-label="Send project request">Send Request</button>
+
+                <p id="form-status"></p>
+
+            </form>
+        </section>
+
+    </main>
+
+    <!-- JS -->
+    <script type="module" src="src/js/main.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+</body>
+
+</html>
