@@ -14,6 +14,14 @@ await app.register(jwt, {
     secret: process.env.JWT_SECRET
 });
 
+app.decorate("authenticate", async function (request, reply) {
+    try {
+        await request.jwtVerify();
+    } catch (err) {
+        return reply.status(401).send({ error: "Unauthorized" });
+    }
+});
+
 // routes depois
 app.register(authRoutes);
 app.register(requestsRoutes);
