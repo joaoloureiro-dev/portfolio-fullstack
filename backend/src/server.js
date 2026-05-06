@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import pool from "./db/index.js";
 import jwt from "@fastify/jwt";
 import authRoutes from "./routes/auth.js";
+import requestsRoutes from "./routes/requests.js";
 
 const app = Fastify({
     logger: true
@@ -15,6 +16,7 @@ await app.register(jwt, {
 
 // routes depois
 app.register(authRoutes);
+app.register(requestsRoutes);
 
 // routes públicas
 app.get("/", async () => {
