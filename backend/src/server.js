@@ -4,6 +4,7 @@ import pool from "./db/index.js";
 import jwt from "@fastify/jwt";
 import authRoutes from "./routes/auth.js";
 import requestsRoutes from "./routes/requests.js";
+import dashboardRoutes from "./routes/dashboard.js";
 
 const app = Fastify({
     logger: true
@@ -25,6 +26,7 @@ app.decorate("authenticate", async function (request, reply) {
 // routes depois
 app.register(authRoutes);
 app.register(requestsRoutes);
+app.register(dashboardRoutes);
 
 // routes públicas
 app.get("/", async () => {
