@@ -1,6 +1,7 @@
 import "./config/env.js";
 import Fastify from "fastify";
 import pool from "./db/index.js";
+import jwt from "@fastify/jwt";
 
 
 const app = Fastify({
@@ -14,6 +15,10 @@ app.get("/", async () => {
 app.get("/db-test", async () => {
     const result = await pool.query("SELECT NOW()");
     return result.rows;
+});
+
+await app.register(jwt, {
+    secret: process.env.JWT_SECRET
 });
 
 const start = async () => {
