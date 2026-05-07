@@ -24,4 +24,27 @@ window.login = async function () {
     saveToken(data.token);
 
     window.location.href = "/dashboard.html";
+
+    window.handleGoogleLogin = async function (response) {
+        const idToken = response.credential;
+
+        const res = await fetch(`${API}/auth/google`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ token: idToken })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById("error").innerText = "Google login failed";
+            return;
+        }
+
+        saveToken(data.token);
+
+        window.location.href = "/dashboard.html";
+    };
 };

@@ -15,12 +15,17 @@
         <input id="password" type="password" placeholder="Password" />
 
         <button onclick="login()">Login</button>
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+        <div id="g_id_onload" data-client_id="YOUR_GOOGLE_CLIENT_ID" data-callback="handleGoogleLogin">
+        </div>
+
+        <div class="g_id_signin"></div>
 
         <p id="error"></p>
     </div>
 
     <script type="module" src="./src/js/login.js"></script>
-
 </body>
 
 </html>
