@@ -1,5 +1,12 @@
 import { getRequests, updateStatus } from "./api.js";
 import { getToken } from "./auth.js";
+import { getToken } from "./auth.js";
+
+const token = getToken();
+
+if (!token) {
+    window.location.href = "/login.html";
+}
 
 const token = getToken();
 
