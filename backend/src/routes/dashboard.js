@@ -1,6 +1,7 @@
 import pool from "../db/index.js";
 
 export default async function dashboardRoutes(app) {
+    console.log("🔥 DASHBOARD ROUTES LOADED");
 
     app.get("/admin/requests", { preHandler: app.authenticate }, async () => {
         const result = await pool.query(
