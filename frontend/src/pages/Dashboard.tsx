@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getRequests } from "../services/api";
+import { getRequests, updateRequestStatus } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 type Request = {
@@ -29,6 +29,22 @@ export default function Dashboard() {
 
         load();
     }, [token]);
+
+    async function handleStatusChange(id: number, status: string) {
+        if (!token) return;
+
+        try {
+            const updated = await updateRequestStatus(id, status, token);
+
+            setRequests((prev) =>
+                prev.map((r) =>
+                    r.id === id ? updated : r
+                )
+            );
+        } catch (err) {
+            console.error("Failed to update status", err);
+        }
+    }
 
     const total = requests.length;
     const pending = requests.filter(r => r.status === "pending").length;
@@ -67,7 +83,7 @@ export default function Dashboard() {
                 {requests.map((req) => (
                     <div
                         key={req.id}
-                        className="bg-zinc-900 p-4 rounded-xl flex justify-between"
+                        className="bg-zinc-900 p-4 rounded-xl flex justify-between items-center"
                     >
 
                         <div>
@@ -80,8 +96,21 @@ export default function Dashboard() {
                             </p>
                         </div>
 
-                        {/* STATUS BADGE */}
-                        <div>
+                        {/* STATUS CONTROL */}
+                        <div className="flex items-center gap-3">
+
+                            <select
+                                value={req.status}
+                                onChange={(e) =>
+                                    handleStatusChange(req.id, e.target.value)
+                                }
+                                className="bg-zinc-800 text-white p-2 rounded"
+                            >
+                                <option value="pending">pending</option>
+                                <option value="in_progress">in_progress</option>
+                                <option value="done">done</option>
+                            </select>
+
                             <span className={`
                                 px-3 py-1 rounded-full text-xs
                                 ${req.status === "pending" && "bg-yellow-500 text-black"}
@@ -90,6 +119,7 @@ export default function Dashboard() {
                             `}>
                                 {req.status}
                             </span>
+
                         </div>
 
                     </div>
