@@ -60,6 +60,7 @@ export default function Login() {
                 />
 
                 <button
+                    type="submit"
                     className="w-full bg-white text-black p-3 rounded font-bold"
                 >
                     Login

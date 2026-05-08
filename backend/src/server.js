@@ -2,6 +2,7 @@ import "./config/env.js";
 import Fastify from "fastify";
 import pool from "./db/index.js";
 import jwt from "@fastify/jwt";
+import cors from "@fastify/cors";
 import authRoutes from "./routes/auth.js";
 import requestsRoutes from "./routes/requests.js";
 import dashboardRoutes from "./routes/dashboard.js";
@@ -22,6 +23,10 @@ app.decorate("authenticate", async function (request, reply) {
     } catch (err) {
         return reply.status(401).send({ error: "Unauthorized" });
     }
+});
+
+await app.register(cors, {
+    origin: "http://localhost:5173"
 });
 
 // routes depois
