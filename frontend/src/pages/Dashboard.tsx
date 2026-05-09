@@ -27,10 +27,12 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let interval: any;
+
         async function load() {
             if (!token) return;
 
-            setLoading(true);
+            if (requests.length === 0) setLoading(true);
 
             const data = await getRequests(token);
             setRequests(data);
@@ -39,6 +41,13 @@ export default function Dashboard() {
         }
 
         load();
+
+        // 🔁 REALTIME (a cada 5 segundos)
+        interval = setInterval(() => {
+            load();
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [token]);
 
     // 🔐 PROTEÇÃO CORRETA (UI LEVEL)
