@@ -9,28 +9,11 @@ import authRoutes from "./routes/auth.js";
 import requestsRoutes from "./routes/requests.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import googleAuthRoutes from "./routes/googleAuth.js";
+import { broadcast, addClient, removeClient } from "./services/socket.js";
 
 const app = Fastify({
     logger: true
 });
-
-// --------------------
-// 🔥 WEBSOCKET CLIENTS (GLOBAL)
-// --------------------
-const clients = new Set();
-
-// --------------------
-// 📡 BROADCAST FUNCTION
-// --------------------
-function broadcast(data) {
-    const message = JSON.stringify(data);
-
-    for (const client of clients) {
-        if (client.readyState === 1) {
-            client.send(message);
-        }
-    }
-}
 
 // --------------------
 // 🔐 JWT
@@ -62,10 +45,10 @@ await app.register(websocket);
 // WebSocket route
 app.get("/ws", { websocket: true }, (connection) => {
 
-    clients.add(connection.socket);
+    addClient(connection.socket);
 
     connection.socket.on("close", () => {
-        clients.delete(connection.socket);
+        removeClient(connection.socket);
     });
 });
 

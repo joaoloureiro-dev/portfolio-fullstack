@@ -1,6 +1,6 @@
 import pool from "../db/index.js";
-import { checkRole } from "../middlewares/roles.js";
-import { broadcast } from "../server.js";
+import { checkRole } from "../middleware/roles.js";
+import { broadcast } from "../services/socket.js";
 
 export default async function dashboardRoutes(app) {
 
