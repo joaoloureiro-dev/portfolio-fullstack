@@ -2,6 +2,7 @@ import pool from "../db/index.js";
 import bcrypt from "bcrypt";
 
 export default async function authRoutes(app) {
+
     app.post("/login", async (request, reply) => {
         const { username, password } = request.body;
 
@@ -22,7 +23,12 @@ export default async function authRoutes(app) {
             return reply.status(401).send({ error: "Invalid credentials" });
         }
 
-        const token = app.jwt.sign({ id: user.id, username: user.username });
+        // ✅ AQUI É O IMPORTANTE (ROLE SYSTEM)
+        const token = app.jwt.sign({
+            id: user.id,
+            username: user.username,
+            role: user.role
+        });
 
         return { token };
     });

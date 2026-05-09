@@ -21,7 +21,7 @@ type Request = {
 };
 
 export default function Dashboard() {
-    const { token } = useAuth();
+    const { token, role } = useAuth();
 
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
@@ -29,6 +29,8 @@ export default function Dashboard() {
     useEffect(() => {
         async function load() {
             if (!token) return;
+
+            setLoading(true);
 
             const data = await getRequests(token);
             setRequests(data);
@@ -38,6 +40,15 @@ export default function Dashboard() {
 
         load();
     }, [token]);
+
+    // 🔐 PROTEÇÃO CORRETA (UI LEVEL)
+    if (role !== "admin") {
+        return (
+            <div className="text-white p-10">
+                Access denied. Admin only.
+            </div>
+        );
+    }
 
     async function handleStatusChange(id: number, status: string) {
         if (!token) return;

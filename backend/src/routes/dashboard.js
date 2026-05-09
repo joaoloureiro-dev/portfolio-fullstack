@@ -1,14 +1,19 @@
 import pool from "../db/index.js";
+import { checkRole } from "../middlewares/roles.js";
 
 export default async function dashboardRoutes(app) {
 
-    app.get("/admin/requests", { preHandler: app.authenticate }, async () => {
-        const result = await pool.query(
-            "SELECT * FROM requests ORDER BY created_at DESC"
-        );
+    app.get(
+        "/admin/requests",
+        { preHandler: [app.authenticate, checkRole("admin")] },
+        async () => {
+            const result = await pool.query(
+                "SELECT * FROM requests ORDER BY created_at DESC"
+            );
 
-        return result.rows;
-    });
+            return result.rows;
+        }
+    );
 
     app.get("/admin/requests/:id", { preHandler: app.authenticate }, async (req, reply) => {
         const { id } = req.params;
