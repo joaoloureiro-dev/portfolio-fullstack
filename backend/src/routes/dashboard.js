@@ -1,8 +1,12 @@
 import pool from "../db/index.js";
 import { checkRole } from "../middlewares/roles.js";
+import { broadcast } from "../server.js";
 
 export default async function dashboardRoutes(app) {
 
+    // --------------------
+    // GET ALL REQUESTS (ADMIN)
+    // --------------------
     app.get(
         "/admin/requests",
         { preHandler: [app.authenticate, checkRole("admin")] },
@@ -15,41 +19,61 @@ export default async function dashboardRoutes(app) {
         }
     );
 
-    app.get("/admin/requests/:id", { preHandler: app.authenticate }, async (req, reply) => {
-        const { id } = req.params;
+    // --------------------
+    // GET REQUEST BY ID
+    // --------------------
+    app.get(
+        "/admin/requests/:id",
+        { preHandler: app.authenticate },
+        async (req, reply) => {
+            const { id } = req.params;
 
-        if (isNaN(id)) {
-            return reply.status(400).send({ error: "Invalid ID" });
+            if (isNaN(id)) {
+                return reply.status(400).send({ error: "Invalid ID" });
+            }
+
+            const result = await pool.query(
+                "SELECT * FROM requests WHERE id = $1",
+                [id]
+            );
+
+            return result.rows[0];
         }
+    );
 
-        const result = await pool.query(
-            "SELECT * FROM requests WHERE id = $1",
-            [id]
-        );
+    // --------------------
+    // UPDATE STATUS (REALTIME)
+    // --------------------
+    app.patch(
+        "/admin/requests/:id/status",
+        { preHandler: app.authenticate },
+        async (req, reply) => {
 
-        return result.rows[0];
-    });
+            const { id } = req.params;
+            const { status } = req.body;
 
-    app.patch("/admin/requests/:id/status", { preHandler: app.authenticate }, async (req, reply) => {
-        const { id } = req.params;
-        const { status } = req.body;
+            const allowed = ["pending", "in_progress", "done"];
 
-        const allowed = ["pending", "in_progress", "done"];
+            if (!status) {
+                return reply.status(400).send({ error: "Status is required" });
+            }
 
-        if (!status) {
-            return reply.status(400).send({ error: "Status is required" });
+            if (!allowed.includes(status)) {
+                return reply.status(400).send({ error: "Invalid status" });
+            }
+
+            const result = await pool.query(
+                "UPDATE requests SET status = $1 WHERE id = $2 RETURNING *",
+                [status, id]
+            );
+
+            // 🔥 REALTIME PUSH
+            broadcast({
+                type: "REQUEST_UPDATED",
+                payload: result.rows[0]
+            });
+
+            return result.rows[0];
         }
-
-        if (!allowed.includes(status)) {
-            return reply.status(400).send({ error: "Invalid status" });
-        }
-
-        const result = await pool.query(
-            "UPDATE requests SET status = $1 WHERE id = $2 RETURNING *",
-            [status, id]
-        );
-
-        return result.rows[0];
-    });
-
+    );
 }

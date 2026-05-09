@@ -42,6 +42,24 @@ export default function Dashboard() {
 
         load();
 
+        useEffect(() => {
+            const socket = new WebSocket("ws://localhost:3000/ws");
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "REQUEST_UPDATED") {
+                    setRequests((prev) =>
+                        prev.map((r) =>
+                            r.id === data.payload.id ? data.payload : r
+                        )
+                    );
+                }
+            };
+
+            return () => socket.close();
+        }, []);
+
         // 🔁 REALTIME (a cada 5 segundos)
         interval = setInterval(() => {
             load();
