@@ -3,6 +3,15 @@ import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer
+} from "recharts";
+
 type Request = {
     id: number;
     name: string;
@@ -48,7 +57,14 @@ export default function Dashboard() {
 
     const total = requests.length;
     const pending = requests.filter(r => r.status === "pending").length;
+    const inProgress = requests.filter(r => r.status === "in_progress").length;
     const done = requests.filter(r => r.status === "done").length;
+
+    const chartData = [
+        { name: "Pending", value: pending },
+        { name: "In Progress", value: inProgress },
+        { name: "Done", value: done }
+    ];
 
     return (
         <DashboardLayout>
@@ -73,6 +89,20 @@ export default function Dashboard() {
 
             </div>
 
+            {/* ANALYTICS CHART */}
+            <div className="bg-zinc-900 p-6 rounded-xl mb-8">
+                <h2 className="mb-4 font-bold">Requests Analytics</h2>
+
+                <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="value" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
             {/* LISTA */}
             <div className="space-y-4">
 
@@ -88,12 +118,8 @@ export default function Dashboard() {
 
                         <div>
                             <p className="font-bold">{req.name}</p>
-                            <p className="text-sm text-zinc-400">
-                                {req.email}
-                            </p>
-                            <p className="text-sm text-zinc-400">
-                                {req.service}
-                            </p>
+                            <p className="text-sm text-zinc-400">{req.email}</p>
+                            <p className="text-sm text-zinc-400">{req.service}</p>
                         </div>
 
                         {/* STATUS CONTROL */}
