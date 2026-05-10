@@ -34,7 +34,15 @@ app.decorate("authenticate", async function (request, reply) {
 // 🌐 CORS
 // --------------------
 await app.register(cors, {
-    origin: "http://localhost:5173"
+    origin: "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"]
+
+});
+
+app.addHook('onSend', async (request, reply, payload) => {
+    reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    return payload;
 });
 
 // --------------------

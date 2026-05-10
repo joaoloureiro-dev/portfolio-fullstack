@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 export default async function authRoutes(app) {
 
     app.post("/login", async (request, reply) => {
+
         const { username, password } = request.body;
 
         const result = await pool.query(
@@ -14,16 +15,23 @@ export default async function authRoutes(app) {
         const user = result.rows[0];
 
         if (!user) {
-            return reply.status(401).send({ error: "Invalid credentials" });
+            return reply.status(401).send({
+                error: "Invalid credentials"
+            });
         }
 
-        const valid = await bcrypt.compare(password, user.password_hash);
+        const valid = await bcrypt.compare(
+            password,
+            user.password_hash
+        );
 
         if (!valid) {
-            return reply.status(401).send({ error: "Invalid credentials" });
+            return reply.status(401).send({
+                error: "Invalid credentials"
+            });
         }
 
-        // ✅ AQUI É O IMPORTANTE (ROLE SYSTEM)
+        // ✅ TOKEN COM ROLE
         const token = app.jwt.sign({
             id: user.id,
             username: user.username,

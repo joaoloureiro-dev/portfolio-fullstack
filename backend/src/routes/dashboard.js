@@ -10,7 +10,7 @@ export default async function dashboardRoutes(app) {
     app.get(
         "/admin/requests",
         { preHandler: [app.authenticate, checkRole("admin")] },
-        async () => {
+        async (req, reply) => {
             const result = await pool.query(
                 "SELECT * FROM requests ORDER BY created_at DESC"
             );

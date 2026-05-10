@@ -21,82 +21,81 @@ type Request = {
 };
 
 export default function Dashboard() {
+
     const { token, role } = useAuth();
 
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // ✅ TODOS OS HOOKS NO TOPO
     useEffect(() => {
-        let interval: any;
+
+        if (!token) return;
 
         async function load() {
-            if (!token) return;
 
-            if (requests.length === 0) setLoading(true);
+            try {
 
-            const data = await getRequests(token);
-            setRequests(data);
+                const data = await getRequests(token as string);
 
-            setLoading(false);
+                setRequests(data);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
         }
 
         load();
 
-        useEffect(() => {
-            const socket = new WebSocket("ws://localhost:3000/ws");
-
-            socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-
-                if (data.type === "REQUEST_UPDATED") {
-                    setRequests((prev) =>
-                        prev.map((r) =>
-                            r.id === data.payload.id ? data.payload : r
-                        )
-                    );
-                }
-            };
-
-            return () => socket.close();
-        }, []);
-
-        // 🔁 REALTIME (a cada 5 segundos)
-        interval = setInterval(() => {
-            load();
-        }, 5000);
-
-        return () => clearInterval(interval);
     }, [token]);
 
-    // 🔐 PROTEÇÃO CORRETA (UI LEVEL)
-    if (role !== "admin") {
+    // ✅ PROTEÇÃO UI
+    if (!loading && role !== "admin") {
         return (
-            <div className="text-white p-10">
-                Access denied. Admin only.
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                Access denied
             </div>
         );
     }
 
     async function handleStatusChange(id: number, status: string) {
+
         if (!token) return;
 
         try {
-            const updated = await updateRequestStatus(id, status, token);
+
+            const updated = await updateRequestStatus(
+                id,
+                status,
+                token
+            );
 
             setRequests((prev) =>
                 prev.map((r) =>
                     r.id === id ? updated : r
                 )
             );
+
         } catch (err) {
-            console.error("Failed to update status", err);
+            console.error(err);
         }
     }
 
     const total = requests.length;
-    const pending = requests.filter(r => r.status === "pending").length;
-    const inProgress = requests.filter(r => r.status === "in_progress").length;
-    const done = requests.filter(r => r.status === "done").length;
+
+    const pending = requests.filter(
+        r => r.status === "pending"
+    ).length;
+
+    const inProgress = requests.filter(
+        r => r.status === "in_progress"
+    ).length;
+
+    const done = requests.filter(
+        r => r.status === "done"
+    ).length;
 
     const chartData = [
         { name: "Pending", value: pending },
@@ -112,67 +111,106 @@ export default function Dashboard() {
 
                 <div className="bg-zinc-900 p-4 rounded-xl">
                     <p className="text-zinc-400">Total</p>
-                    <h2 className="text-2xl font-bold">{total}</h2>
+                    <h2 className="text-2xl font-bold">
+                        {total}
+                    </h2>
                 </div>
 
                 <div className="bg-zinc-900 p-4 rounded-xl">
                     <p className="text-zinc-400">Pending</p>
-                    <h2 className="text-2xl font-bold">{pending}</h2>
+                    <h2 className="text-2xl font-bold">
+                        {pending}
+                    </h2>
                 </div>
 
                 <div className="bg-zinc-900 p-4 rounded-xl">
                     <p className="text-zinc-400">Done</p>
-                    <h2 className="text-2xl font-bold">{done}</h2>
+                    <h2 className="text-2xl font-bold">
+                        {done}
+                    </h2>
                 </div>
 
             </div>
 
-            {/* ANALYTICS CHART */}
+            {/* CHART */}
             <div className="bg-zinc-900 p-6 rounded-xl mb-8">
-                <h2 className="mb-4 font-bold">Requests Analytics</h2>
+
+                <h2 className="mb-4 font-bold">
+                    Requests Analytics
+                </h2>
 
                 <ResponsiveContainer width="100%" height={250}>
+
                     <BarChart data={chartData}>
+
                         <XAxis dataKey="name" />
+
                         <YAxis />
+
                         <Tooltip />
+
                         <Bar dataKey="value" />
+
                     </BarChart>
+
                 </ResponsiveContainer>
+
             </div>
 
-            {/* LISTA */}
+            {/* LIST */}
             <div className="space-y-4">
 
                 {loading && (
-                    <p className="text-zinc-400">Loading...</p>
+                    <p className="text-zinc-400">
+                        Loading...
+                    </p>
                 )}
 
                 {requests.map((req) => (
+
                     <div
                         key={req.id}
                         className="bg-zinc-900 p-4 rounded-xl flex justify-between items-center"
                     >
 
                         <div>
-                            <p className="font-bold">{req.name}</p>
-                            <p className="text-sm text-zinc-400">{req.email}</p>
-                            <p className="text-sm text-zinc-400">{req.service}</p>
+                            <p className="font-bold">
+                                {req.name}
+                            </p>
+
+                            <p className="text-sm text-zinc-400">
+                                {req.email}
+                            </p>
+
+                            <p className="text-sm text-zinc-400">
+                                {req.service}
+                            </p>
                         </div>
 
-                        {/* STATUS CONTROL */}
                         <div className="flex items-center gap-3">
 
                             <select
                                 value={req.status}
                                 onChange={(e) =>
-                                    handleStatusChange(req.id, e.target.value)
+                                    handleStatusChange(
+                                        req.id,
+                                        e.target.value
+                                    )
                                 }
                                 className="bg-zinc-800 text-white p-2 rounded"
                             >
-                                <option value="pending">pending</option>
-                                <option value="in_progress">in_progress</option>
-                                <option value="done">done</option>
+                                <option value="pending">
+                                    pending
+                                </option>
+
+                                <option value="in_progress">
+                                    in_progress
+                                </option>
+
+                                <option value="done">
+                                    done
+                                </option>
+
                             </select>
 
                             <span className={`
@@ -187,6 +225,7 @@ export default function Dashboard() {
                         </div>
 
                     </div>
+
                 ))}
 
             </div>
