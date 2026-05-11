@@ -1,0 +1,24 @@
+/* No Tailwind v4, basta este import para carregar tudo */
+@import "tailwindcss";
+
+:root {
+    --color-bg: #0f0f0f;
+    --color-bg-secondary: #0d1117;
+    --color-primary: #ff7b00;
+    --color-primary-hover: #e66a00;
+    --color-text: #ffffff;
+    --color-text-secondary: #a0a0a0;
+    --color-border: #1f1f1f;
+    --gradient-main: linear-gradient(90deg, #0f0f0f, #ff7b00);
+}
+
+/* O Tailwind v4 deteta estas variáveis automaticamente como utilitários */
+/* Exemplo: podes usar bg-bg-secondary ou text-primary no teu HTML */
+
+html,
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+}

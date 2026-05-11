@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getRequests, updateRequestStatus, getAnalytics } from "../services/api"; // Adicionei getAnalytics
+import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
@@ -12,6 +12,7 @@ type Request = {
     email: string;
     service: string;
     status: string;
+    created_at?: string;
 };
 
 type Analytics = {
@@ -32,15 +33,14 @@ export default function Dashboard() {
 
         async function loadData() {
             try {
-                // Carrega ambos em paralelo para performance profissional
                 const [requestsData, analyticsData] = await Promise.all([
                     getRequests(token as string),
-                    getAnalytics(token as string) // Criar esta função no teu services/api.ts
+                    getAnalytics(token as string)
                 ]);
                 setRequests(requestsData);
                 setAnalytics(analyticsData);
             } catch (err) {
-                console.error("Error loading dashboard data:", err);
+                console.error("Data loading error:", err);
             } finally {
                 setLoading(false);
             }
@@ -48,105 +48,86 @@ export default function Dashboard() {
         loadData();
     }, [token]);
 
+    async function handleStatusChange(id: number, status: string) {
+        if (!token) return;
+        try {
+            const updated = await updateRequestStatus(id, status, token);
+            setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: updated.status } : r));
+        } catch (err) {
+            console.error("Status update error:", err);
+            alert("Failed to update inquiry status.");
+        }
+    }
+
+    const stats = useMemo(() => {
+        const p = requests.filter(r => r.status === "pending").length;
+        const i = requests.filter(r => r.status === "in_progress").length;
+        const d = requests.filter(r => r.status === "done").length;
+        return {
+            pending: p,
+            inProgress: i,
+            done: d,
+            chart: [
+                { name: "Pending", value: p, color: "#3f3f46" },
+                { name: "In Progress", value: "#ff7b00" }, // var(--color-primary) hex
+                { name: "Done", value: "#22c55e" }
+            ]
+        };
+    }, [requests]);
+
     if (!loading && role !== "admin") {
         return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center">
-                <div className="text-center p-8 bg-zinc-900 rounded-2xl border border-red-500/50">
-                    <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-                    <p className="text-zinc-400">You don't have permission to view this page.</p>
+            <div className="min-h-screen bg-(--color-bg) flex items-center justify-center">
+                <div className="text-center p-8 bg-(--color-bg-secondary) rounded-2xl border border-red-500/30">
+                    <h1 className="text-xl font-bold text-white mb-2">Access Denied</h1>
+                    <p className="text-zinc-500">You don't have permission to view this page.</p>
                 </div>
             </div>
         );
     }
 
-    async function handleStatusChange(id: number, status: string) {
-        if (!token) return;
-        try {
-            const updated = await updateRequestStatus(id, status, token);
-            setRequests((prev) => prev.map((r) => r.id === id ? updated : r));
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    // Cálculos de métricas
-    const pending = requests.filter(r => r.status === "pending").length;
-    const inProgress = requests.filter(r => r.status === "in_progress").length;
-    const done = requests.filter(r => r.status === "done").length;
-
-    const chartData = [
-        { name: "Pending", value: pending, color: "#eab308" }, // Amarelo
-        { name: "In Progress", value: inProgress, color: "#3b82f6" }, // Azul
-        { name: "Done", value: done, color: "#22c55e" } // Verde
-    ];
-
     return (
         <DashboardLayout>
-            {/* GRID DE CARDS - Responsivo */}
+            {/* STATS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {/* Stats da BD Local */}
-                <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                    <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">Total Requests</p>
-                    <h2 className="text-3xl font-bold mt-1">{requests.length}</h2>
-                </div>
-
-                {/* Stats do "Google Analytics" */}
-                <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                    <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">Active Users (7d)</p>
-                    <div className="flex items-baseline gap-2">
-                        <h2 className="text-3xl font-bold mt-1">{analytics?.activeUsers || 0}</h2>
-                        <span className="text-green-500 text-sm font-bold">{analytics?.growth}</span>
-                    </div>
-                </div>
-
-                <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                    <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">Page Views</p>
-                    <h2 className="text-3xl font-bold mt-1">{analytics?.screenPageViews || 0}</h2>
-                </div>
-
-                <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                    <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">Top Service</p>
-                    <h2 className="text-lg font-bold mt-2 truncate">{analytics?.topService || "N/A"}</h2>
-                </div>
+                <StatCard title="Total Requests" value={requests.length} />
+                <StatCard title="Active Users" value={analytics?.activeUsers || 0} growth={analytics?.growth} />
+                <StatCard title="Page Views" value={analytics?.screenPageViews || 0} />
+                <StatCard title="Top Service" value={analytics?.topService || "N/A"} isSmall />
             </div>
 
             {/* CHART SECTION */}
-            <div className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 mb-8">
-                <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Requests Overview
+            <div className="bg-(--color-bg-secondary) p-6 rounded-2xl border border-(--color-border) mb-8">
+                <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-(--color-primary) italic tracking-tighter uppercase">
+                    <span className="w-2 h-2 bg-(--color-primary) rounded-full shadow-[0_0_8px_var(--color-primary)]"></span>
+                    Inquiry Volume
                 </h2>
 
-                {/* A solução está aqui: Definimos uma altura fixa de 300px na div pai 
-       para o ResponsiveContainer não ficar "perdido" a tentar calcular o tamanho.
-    */}
-                <div className="h-[300px] w-full min-h-[300px]">
+                <div className="h-80 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={chartData}
-                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        >
+                        <BarChart data={stats.chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <XAxis
                                 dataKey="name"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#71717a', fontSize: 12 }}
+                                tick={{ fill: '#71717a', fontSize: 11, fontWeight: 700 }}
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#71717a', fontSize: 12 }}
+                                tick={{ fill: '#71717a', fontSize: 11 }}
                             />
                             <Tooltip
-                                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                                 contentStyle={{
-                                    backgroundColor: '#18181b',
-                                    border: '1px solid #3f3f46',
-                                    borderRadius: '12px'
+                                    backgroundColor: '#0f0f0f',
+                                    border: '1px solid #1f1f1f',
+                                    borderRadius: '12px',
+                                    color: '#fff'
                                 }}
                             />
-                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
-                                {chartData.map((entry, index) => (
+                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
+                                {stats.chart.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Bar>
@@ -155,37 +136,36 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* LISTA DE PEDIDOS - Mobile First */}
-            <div className="grid gap-4">
-                <h2 className="text-xl font-bold mb-2">Recent Inquiries</h2>
+            {/* LIST OF INQUIRIES */}
+            <div className="space-y-4">
+                <h2 className="text-xl font-black text-(--color-primary) mb-4 italic tracking-tighter uppercase">
+                    Recent Inquiries
+                </h2>
+
                 {loading ? (
-                    <div className="animate-pulse flex space-x-4">
-                        <div className="flex-1 space-y-4 py-1">
-                            <div className="h-20 bg-zinc-800 rounded-xl"></div>
-                        </div>
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-24 bg-zinc-900 rounded-2xl"></div>
+                        <div className="h-24 bg-zinc-900 rounded-2xl"></div>
                     </div>
                 ) : (
                     requests.map((req) => (
-                        <div key={req.id} className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-zinc-700">
+                        <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-zinc-700">
                             <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-bold text-lg">{req.name}</h3>
-                                    <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${req.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                                        req.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500' :
-                                            'bg-green-500/10 text-green-500'
-                                        }`}>
-                                        {req.status.replace('_', ' ')}
-                                    </span>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h3 className="font-bold text-lg text-white tracking-tight">{req.name}</h3>
+                                    <StatusBadge status={req.status} />
                                 </div>
-                                <p className="text-zinc-400 text-sm">{req.email}</p>
-                                <p className="text-blue-400 text-xs font-medium mt-1 uppercase tracking-tighter">{req.service}</p>
+                                <p className="text-zinc-500 text-sm">{req.email}</p>
+                                <p className="text-(--color-primary) text-xs font-black mt-1 uppercase tracking-widest">
+                                    {req.service}
+                                </p>
                             </div>
 
                             <div className="flex items-center gap-3 self-end md:self-center">
                                 <select
                                     value={req.status}
                                     onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                                    className="bg-zinc-800 text-sm text-white font-medium p-2.5 rounded-xl border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="bg-(--color-bg) text-xs text-white font-bold p-3 rounded-xl border border-(--color-border) focus:border-(--color-primary) outline-none cursor-pointer uppercase tracking-tighter transition-colors"
                                 >
                                     <option value="pending">Pending</option>
                                     <option value="in_progress">In Progress</option>
@@ -197,5 +177,35 @@ export default function Dashboard() {
                 )}
             </div>
         </DashboardLayout>
+    );
+}
+
+function StatCard({ title, value, growth, isSmall }: any) {
+    return (
+        <div className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) transition-all hover:border-(--color-primary)/30 group">
+            <p className="text-(--color-primary) text-[10px] font-black uppercase tracking-widest mb-2 opacity-80">
+                {title}
+            </p>
+            <div className="flex items-baseline gap-2">
+                <h2 className={`${isSmall ? 'text-lg' : 'text-3xl'} font-black text-white tracking-tighter`}>
+                    {value}
+                </h2>
+                {growth && <span className="text-green-500 text-xs font-bold">{growth}</span>}
+            </div>
+        </div>
+    );
+}
+
+function StatusBadge({ status }: { status: string }) {
+    const styles = {
+        pending: "bg-zinc-800 text-zinc-400",
+        in_progress: "bg-(--color-primary)/10 text-(--color-primary)",
+        done: "bg-green-500/10 text-green-500"
+    };
+
+    return (
+        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded tracking-tighter ${styles[status as keyof typeof styles] || styles.pending}`}>
+            {status.replace('_', ' ')}
+        </span>
     );
 }

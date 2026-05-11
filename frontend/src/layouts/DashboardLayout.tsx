@@ -1,24 +1,23 @@
 import type { ReactNode } from "react";
+import Sidebar from "../components/Sidebar"; // Agora vamos usar isto!
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+interface LayoutProps {
+    children: ReactNode;
+}
+
+export default function DashboardLayout({ children }: LayoutProps) {
     return (
-        <div className="min-h-screen bg-black text-white flex">
+        <div className="min-h-screen bg-(--color-bg) text-white flex">
 
-            {/* SIDEBAR */}
-            <aside className="w-64 bg-zinc-900 p-6">
-                <h1 className="text-xl font-bold mb-8">
-                    Admin Panel
-                </h1>
+            {/* SIDEBAR COMPONENT */}
+            {/* Chamamos o componente aqui para o import ser lido */}
+            <Sidebar />
 
-                <nav className="space-y-4 text-sm">
-                    <p className="text-zinc-400">Dashboard</p>
-                    <p className="text-zinc-400">Requests</p>
-                </nav>
-            </aside>
-
-            {/* CONTENT */}
-            <main className="flex-1 p-8">
-                {children}
+            {/* CONTENT AREA */}
+            <main className="flex-1 overflow-y-auto">
+                <div className="max-w-7xl mx-auto p-4 md:p-8">
+                    {children}
+                </div>
             </main>
 
         </div>

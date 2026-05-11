@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
@@ -13,93 +12,125 @@ export default function Login() {
 
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
+        try {
+            const res = await fetch("http://localhost:3000/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
 
-        const res = await fetch("http://localhost:3000/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username, password }),
-        });
+            const data = await res.json();
+            if (!res.ok) {
+                alert("Login failed");
+                return;
+            }
 
-        const data = await res.json();
-
-        if (!res.ok) {
-            alert("Login failed");
-            return;
+            login(data.token);
+            navigate("/dashboard");
+        } catch (error) {
+            console.error("Request error:", error);
+            alert("Could not connect to the server.");
         }
-
-        login(data.token);
-        navigate("/dashboard");
     }
 
     async function handleGoogleLogin(credentialResponse: any) {
-        const res = await fetch("http://localhost:3000/auth/google", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                token: credentialResponse.credential,
-            }),
-        });
+        try {
+            const res = await fetch("http://localhost:3000/auth/google", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: credentialResponse.credential }),
+            });
 
-        const data = await res.json();
+            const data = await res.json();
+            if (!res.ok) {
+                alert("Google login failed");
+                return;
+            }
 
-        if (!res.ok) {
-            alert("Google login failed");
-            return;
+            login(data.token);
+            navigate("/dashboard");
+        } catch (error) {
+            console.error("Google Auth Error:", error);
+            alert("Error authenticating with Google.");
         }
-
-        login(data.token);
-        navigate("/dashboard");
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="min-h-screen bg-(--color-bg) flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-(--color-bg-secondary) border border-(--color-border) p-10 rounded-3xl shadow-2xl relative overflow-hidden">
 
-            <form
-                onSubmit={handleLogin}
-                className="bg-zinc-900 p-10 rounded-2xl w-full max-w-md space-y-4"
-            >
-                <h1 className="text-3xl font-bold">
-                    Admin Login
-                </h1>
+                {/* Decorative Glow */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-(--color-primary)/10 blur-[80px]"></div>
 
-                <input
-                    className="w-full p-3 rounded bg-zinc-800"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                />
-
-                <input
-                    type="password"
-                    className="w-full p-3 rounded bg-zinc-800"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
-
-                <button
-                    type="submit"
-                    className="w-full bg-white text-black p-3 rounded font-bold"
-                >
-                    Login
-                </button>
-
-                {/* GOOGLE LOGIN */}
-                <div className="flex justify-center pt-4">
-                    <GoogleLogin
-                        onSuccess={handleGoogleLogin}
-                        onError={() => {
-                            console.log("Google Login Failed");
-                        }}
-                    />
+                <div className="text-center mb-10">
+                    <h1 className="text-4xl font-black text-white tracking-tighter mb-2 italic">
+                        ADMIN<span className="text-(--color-primary)">.</span>
+                    </h1>
+                    <p className="text-(--color-text-secondary) text-sm font-medium">
+                        Management System Access
+                    </p>
                 </div>
 
-            </form>
+                <form onSubmit={handleLogin} className="space-y-5 relative z-10">
+                    <div>
+                        <label className="block text-[10px] font-black text-(--color-text-secondary) uppercase mb-1.5 ml-1 tracking-widest">
+                            Username
+                        </label>
+                        <input
+                            className="w-full bg-(--color-bg) border border-(--color-border) p-4 rounded-2xl text-white focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-all outline-none placeholder:text-zinc-700"
+                            placeholder="admin_user"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    </div>
 
+                    <div>
+                        <label className="block text-[10px] font-black text-(--color-text-secondary) uppercase mb-1.5 ml-1 tracking-widest">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            className="w-full bg-(--color-bg) border border-(--color-border) p-4 rounded-2xl text-white focus:border-(--color-primary) focus:ring-1 focus:ring-(--color-primary) transition-all outline-none"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-(--color-primary) hover:bg-(--color-primary-hover) text-white font-black py-4 rounded-2xl shadow-xl shadow-(--color-primary)/20 transition-all transform active:scale-[0.98] uppercase text-xs tracking-widest mt-2 cursor-pointer"
+                    >
+                        Sign In
+                    </button>
+
+                    {/* DIVIDER with h-px */}
+                    <div className="flex items-center gap-4 py-2">
+                        <div className="h-px flex-1 bg-(--color-border)"></div>
+                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">Or continue with</span>
+                        <div className="h-px flex-1 bg-(--color-border)"></div>
+                    </div>
+
+                    {/* CENTERED GOOGLE LOGIN - Full Width Match */}
+                    <div className="flex justify-center w-full pt-2">
+                        <div className="w-full transition-all hover:opacity-90">
+                            <GoogleLogin
+                                onSuccess={handleGoogleLogin}
+                                onError={() => console.log("Google Login Failed")}
+                                theme="filled_black"
+                                shape="pill"
+                                // Using a large fixed width or "container" logic 
+                                // to ensure it fills the max-width of the parent
+                                width="352px"
+                                text="signin_with"
+                                logo_alignment="left"
+                            />
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }
