@@ -116,16 +116,36 @@ export default function Dashboard() {
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     Requests Overview
                 </h2>
-                <div className="h-[300px] w-full">
+
+                {/* A solução está aqui: Definimos uma altura fixa de 300px na div pai 
+       para o ResponsiveContainer não ficar "perdido" a tentar calcular o tamanho.
+    */}
+                <div className="h-[300px] w-full min-h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData}>
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                            <YAxis axisLine={false} tickLine={false} />
+                        <BarChart
+                            data={chartData}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#71717a', fontSize: 12 }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#71717a', fontSize: 12 }}
+                            />
                             <Tooltip
                                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                contentStyle={{ backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: '8px' }}
+                                contentStyle={{
+                                    backgroundColor: '#18181b',
+                                    border: '1px solid #3f3f46',
+                                    borderRadius: '12px'
+                                }}
                             />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                                 {chartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
@@ -151,8 +171,8 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <h3 className="font-bold text-lg">{req.name}</h3>
                                     <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${req.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                                            req.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500' :
-                                                'bg-green-500/10 text-green-500'
+                                        req.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500' :
+                                            'bg-green-500/10 text-green-500'
                                         }`}>
                                         {req.status.replace('_', ' ')}
                                     </span>
