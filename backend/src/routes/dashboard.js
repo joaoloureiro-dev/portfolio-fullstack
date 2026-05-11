@@ -92,4 +92,23 @@ export default async function dashboardRoutes(app) {
             return reply.status(500).send({ error: "Internal server error during update" });
         }
     });
+    // -----------------------------------------------------------
+    // 4. ANALYTICS (MOCK DATA - Temporary)
+    // -----------------------------------------------------------
+    app.get("/admin/analytics", adminAuth, async (req, reply) => {
+        try {
+            // Simulamos dados que viriam do Google Analytics
+            // Mais tarde, trocamos isto pela API real
+            const mockData = {
+                activeUsers: Math.floor(Math.random() * (150 - 50) + 50), // Entre 50 e 150
+                screenPageViews: Math.floor(Math.random() * (1200 - 800) + 800), // Entre 800 e 1200
+                topService: "Website Development",
+                growth: "+12.5%"
+            };
+
+            return mockData;
+        } catch (err) {
+            return reply.status(500).send({ error: "Failed to fetch analytics" });
+        }
+    });
 }
