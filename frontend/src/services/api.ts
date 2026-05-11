@@ -5,13 +5,11 @@ async function authorizedFetch(url: string, options: RequestInit = {}) {
     const res = await fetch(url, options);
 
     if (res.status === 403) {
-        // Redireciona para a tua nova página profissional
         window.location.href = "/unauthorized";
         return;
     }
 
     if (res.status === 401) {
-        // Token expirado ou inválido
         localStorage.removeItem("token");
         window.location.href = "/login";
         return;
@@ -24,6 +22,7 @@ async function authorizedFetch(url: string, options: RequestInit = {}) {
     return res.json();
 }
 
+// 1. LISTAR PEDIDOS
 export async function getRequests(token: string) {
     return authorizedFetch(`${API_URL}/admin/requests`, {
         headers: {
@@ -32,6 +31,7 @@ export async function getRequests(token: string) {
     });
 }
 
+// 2. ATUALIZAR STATUS
 export async function updateRequestStatus(id: number, status: string, token: string) {
     return authorizedFetch(`${API_URL}/admin/requests/${id}/status`, {
         method: "PATCH",
@@ -40,5 +40,16 @@ export async function updateRequestStatus(id: number, status: string, token: str
             Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status })
+    });
+}
+
+// 3. OBTER ANALYTICS (Agora usando o authorizedFetch corretamente)
+export async function getAnalytics(token: string) {
+    return authorizedFetch(`${API_URL}/admin/analytics`, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        }
     });
 }
