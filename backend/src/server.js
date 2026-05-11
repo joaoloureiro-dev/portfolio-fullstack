@@ -19,7 +19,7 @@ const app = Fastify({
 // 🔐 JWT
 // --------------------
 await app.register(jwt, {
-    secret: process.env.JWT_SECRET, // Não esqueças da vírgula aqui
+    secret: process.env.JWT_SECRET,
     sign: {
         expiresIn: '1h' // Agora sim, dentro de um objeto próprio
     }
