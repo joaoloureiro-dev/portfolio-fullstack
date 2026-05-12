@@ -10,6 +10,7 @@ import requestsRoutes from "./routes/requests.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import googleAuthRoutes from "./routes/googleAuth.js";
 import { broadcast, addClient, removeClient } from "./services/socket.js";
+import logsRoutes from "./routes/logs.js";
 
 const app = Fastify({
     logger: true
@@ -68,6 +69,7 @@ app.get("/ws", { websocket: true }, (connection) => {
 // --------------------
 app.register(authRoutes);
 app.register(requestsRoutes);
+app.register(logsRoutes);
 app.register(dashboardRoutes);
 app.register(googleAuthRoutes);
 

@@ -2,12 +2,12 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
-import { toast } from "sonner"; // 1. Importar o toast
+import { ActivityLog } from "../components/ActivityLog"; // Importar aqui
+import { toast } from "sonner";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from "recharts";
 
-// ... Types (mantêm-se iguais) ...
 type Request = {
     id: number;
     name: string;
@@ -45,7 +45,7 @@ export default function Dashboard() {
                 setAnalytics(analyticsData);
             } catch (err) {
                 console.error("Data loading error:", err);
-                toast.error("Failed to load dashboard data"); // Toast de erro no load
+                toast.error("Failed to load dashboard data");
             } finally {
                 setLoading(false);
             }
@@ -53,7 +53,6 @@ export default function Dashboard() {
         loadData();
     }, [token]);
 
-    // ... Lógica de filteredRequests e stats (mantêm-se iguais) ...
     const filteredRequests = useMemo(() => {
         return requests.filter((req) => {
             const matchesSearch =
@@ -64,11 +63,9 @@ export default function Dashboard() {
         });
     }, [requests, searchTerm, filterStatus]);
 
-    // 2. Função handleStatusChange ATUALIZADA com Sonner
     async function handleStatusChange(id: number, status: string) {
         if (!token) return;
 
-        // Criamos a promessa da API
         const promise = updateRequestStatus(id, status, token).then((updated) => {
             setRequests((prev) =>
                 prev.map((r) => r.id === id ? { ...r, status: updated.status } : r)
@@ -76,7 +73,6 @@ export default function Dashboard() {
             return updated;
         });
 
-        // Disparamos o toast profissional
         toast.promise(promise, {
             loading: 'Updating status...',
             success: () => `Inquiry marked as ${status.replace('_', ' ')}`,
@@ -98,7 +94,6 @@ export default function Dashboard() {
         };
     }, [requests]);
 
-    // ... Restante do JSX (mantém-se igual) ...
     if (!loading && role !== "admin") {
         return (
             <div className="min-h-screen bg-(--color-bg) flex items-center justify-center">
@@ -112,7 +107,6 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
-            {/* ... Todo o teu layout de cards, gráfico e filtros ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <StatCard title="Total Requests" value={requests.length} />
                 <StatCard title="Active Users" value={analytics?.activeUsers || 0} growth={analytics?.growth} />
@@ -140,63 +134,76 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
-                <input
-                    type="text"
-                    placeholder="Search inquiries..."
-                    className="w-full md:w-96 bg-(--color-bg-secondary) border border-(--color-border) p-3 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                    {["all", "pending", "in_progress", "done"].map((status) => (
-                        <button
-                            key={status}
-                            onClick={() => setFilterStatus(status)}
-                            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"
-                                }`}
-                        >
-                            {status.replace("_", " ")}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {/* Início da alteração: Grid para separar Pedidos de Logs */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-            <div className="space-y-4">
-                {loading ? (
-                    <p className="text-white text-center">Loading inquiries...</p>
-                ) : filteredRequests.length > 0 ? (
-                    filteredRequests.map((req) => (
-                        <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h3 className="font-bold text-white">{req.name}</h3>
-                                    <StatusBadge status={req.status} />
-                                </div>
-                                <p className="text-zinc-500 text-sm">{req.email}</p>
-                            </div>
-                            <select
-                                value={req.status}
-                                onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                                className="bg-(--color-bg) text-xs text-white font-bold p-2 rounded-lg border border-(--color-border) outline-none cursor-pointer hover:border-(--color-primary)"
-                            >
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="done">Done</option>
-                            </select>
+                {/* Coluna dos Pedidos (Ocupa 2/3 no Desktop) */}
+                <div className="lg:col-span-2">
+                    <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
+                        <input
+                            type="text"
+                            placeholder="Search inquiries..."
+                            className="w-full md:w-96 bg-(--color-bg-secondary) border border-(--color-border) p-3 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                            {["all", "pending", "in_progress", "done"].map((status) => (
+                                <button
+                                    key={status}
+                                    onClick={() => setFilterStatus(status)}
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"
+                                        }`}
+                                >
+                                    {status.replace("_", " ")}
+                                </button>
+                            ))}
                         </div>
-                    ))
-                ) : (
-                    <div className="text-center py-10 border border-dashed border-(--color-border) rounded-2xl text-zinc-500 text-xs font-bold uppercase">
-                        No matches found.
                     </div>
-                )}
+
+                    <div className="space-y-4">
+                        {loading ? (
+                            <p className="text-white text-center">Loading inquiries...</p>
+                        ) : filteredRequests.length > 0 ? (
+                            filteredRequests.map((req) => (
+                                <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="font-bold text-white">{req.name}</h3>
+                                            <StatusBadge status={req.status} />
+                                        </div>
+                                        <p className="text-zinc-500 text-sm">{req.email}</p>
+                                    </div>
+                                    <select
+                                        value={req.status}
+                                        onChange={(e) => handleStatusChange(req.id, e.target.value)}
+                                        className="bg-(--color-bg) text-xs text-white font-bold p-2 rounded-lg border border-(--color-border) outline-none cursor-pointer hover:border-(--color-primary)"
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="done">Done</option>
+                                    </select>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-10 border border-dashed border-(--color-border) rounded-2xl text-zinc-500 text-xs font-bold uppercase">
+                                No matches found.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Coluna dos Logs (Ocupa 1/3 no Desktop) */}
+                <div className="lg:col-span-1">
+                    <ActivityLog />
+                </div>
+
             </div>
+            {/* Fim da alteração */}
         </DashboardLayout>
     );
 }
 
-// ... StatCard e StatusBadge (mantêm-se iguais) ...
 function StatCard({ title, value, growth, isSmall }: any) {
     return (
         <div className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) transition-all hover:border-(--color-primary)/30">
