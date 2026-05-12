@@ -20,9 +20,15 @@ export function ActivityLog() {
                     },
                 });
                 const data = await response.json();
-                setLogs(data);
+                // SEGURANÇA: Só faz set se data for um array
+                if (Array.isArray(data)) {
+                    setLogs(data);
+                } else {
+                    setLogs([]);
+                }
             } catch (err) {
                 console.error("Erro ao carregar logs", err);
+                setLogs([]); // Evita que fique undefined
             }
         };
 
@@ -37,10 +43,11 @@ export function ActivityLog() {
             </h3>
 
             <div className="space-y-6 max-h-100 overflow-y-auto pr-2 custom-scrollbar">
-                {logs.map((log) => (
+                {/* O ? garante que não quebra se for null */}
+                {logs?.map((log) => (
                     <div key={log.id} className="border-l-2 border-orange-500/20 pl-4 py-1 group hover:border-orange-500 transition-colors">
                         <p className="text-xs text-zinc-400 leading-relaxed">
-                            <span className="font-bold text-orange-400">@{log.username.toLowerCase()}</span> {log.details}
+                            <span className="font-bold text-orange-400">@{log.username?.toLowerCase() || 'system'}</span> {log.details}
                         </p>
                         <span className="text-[9px] text-zinc-600 uppercase font-black tracking-widest mt-1 block">
                             {new Date(log.created_at).toLocaleString('pt-PT')}
@@ -48,7 +55,7 @@ export function ActivityLog() {
                     </div>
                 ))}
 
-                {logs.length === 0 && (
+                {(!logs || logs.length === 0) && (
                     <p className="text-zinc-600 text-[10px] uppercase font-bold italic text-center py-10">
                         No activity recorded yet.
                     </p>
