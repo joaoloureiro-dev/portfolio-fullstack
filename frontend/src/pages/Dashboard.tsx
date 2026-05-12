@@ -2,10 +2,12 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
+import { toast } from "sonner"; // 1. Importar o toast
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from "recharts";
 
+// ... Types (mantêm-se iguais) ...
 type Request = {
     id: number;
     name: string;
@@ -43,6 +45,7 @@ export default function Dashboard() {
                 setAnalytics(analyticsData);
             } catch (err) {
                 console.error("Data loading error:", err);
+                toast.error("Failed to load dashboard data"); // Toast de erro no load
             } finally {
                 setLoading(false);
             }
@@ -50,6 +53,7 @@ export default function Dashboard() {
         loadData();
     }, [token]);
 
+    // ... Lógica de filteredRequests e stats (mantêm-se iguais) ...
     const filteredRequests = useMemo(() => {
         return requests.filter((req) => {
             const matchesSearch =
@@ -60,15 +64,24 @@ export default function Dashboard() {
         });
     }, [requests, searchTerm, filterStatus]);
 
+    // 2. Função handleStatusChange ATUALIZADA com Sonner
     async function handleStatusChange(id: number, status: string) {
         if (!token) return;
-        try {
-            const updated = await updateRequestStatus(id, status, token);
-            setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: updated.status } : r));
-        } catch (err) {
-            console.error("Status update error:", err);
-            alert("Failed to update inquiry status.");
-        }
+
+        // Criamos a promessa da API
+        const promise = updateRequestStatus(id, status, token).then((updated) => {
+            setRequests((prev) =>
+                prev.map((r) => r.id === id ? { ...r, status: updated.status } : r)
+            );
+            return updated;
+        });
+
+        // Disparamos o toast profissional
+        toast.promise(promise, {
+            loading: 'Updating status...',
+            success: () => `Inquiry marked as ${status.replace('_', ' ')}`,
+            error: 'Could not update status.',
+        });
     }
 
     const stats = useMemo(() => {
@@ -85,6 +98,7 @@ export default function Dashboard() {
         };
     }, [requests]);
 
+    // ... Restante do JSX (mantém-se igual) ...
     if (!loading && role !== "admin") {
         return (
             <div className="min-h-screen bg-(--color-bg) flex items-center justify-center">
@@ -98,6 +112,7 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
+            {/* ... Todo o teu layout de cards, gráfico e filtros ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <StatCard title="Total Requests" value={requests.length} />
                 <StatCard title="Active Users" value={analytics?.activeUsers || 0} growth={analytics?.growth} />
@@ -149,10 +164,10 @@ export default function Dashboard() {
 
             <div className="space-y-4">
                 {loading ? (
-                    <p>Loading...</p>
+                    <p className="text-white text-center">Loading inquiries...</p>
                 ) : filteredRequests.length > 0 ? (
                     filteredRequests.map((req) => (
-                        <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center">
+                        <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
                             <div>
                                 <div className="flex items-center gap-3">
                                     <h3 className="font-bold text-white">{req.name}</h3>
@@ -163,7 +178,7 @@ export default function Dashboard() {
                             <select
                                 value={req.status}
                                 onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                                className="bg-(--color-bg) text-xs text-white font-bold p-2 rounded-lg border border-(--color-border) outline-none"
+                                className="bg-(--color-bg) text-xs text-white font-bold p-2 rounded-lg border border-(--color-border) outline-none cursor-pointer hover:border-(--color-primary)"
                             >
                                 <option value="pending">Pending</option>
                                 <option value="in_progress">In Progress</option>
@@ -181,8 +196,7 @@ export default function Dashboard() {
     );
 }
 
-// ESTES SÃO OS COMPONENTES QUE ESTAVAM A FALTAR:
-
+// ... StatCard e StatusBadge (mantêm-se iguais) ...
 function StatCard({ title, value, growth, isSmall }: any) {
     return (
         <div className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) transition-all hover:border-(--color-primary)/30">
