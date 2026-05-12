@@ -22,11 +22,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
 
             <aside className={`
-                fixed top-0 left-0 z-50 h-full w-64 flex flex-col bg-(--color-bg-secondary) border-r border-(--color-border) shrink-0
-                transition-transform duration-300 ease-in-out
-                ${isOpen ? "translate-x-0" : "-translate-x-full"}
-                md:relative md:translate-x-0 md:flex
-            `}>
+    fixed top-0 left-0 z-50 h-screen w-64 flex flex-col bg-(--color-bg-secondary) border-r border-(--color-border) shrink-0
+    transition-transform duration-300 ease-in-out
+    ${isOpen ? "translate-x-0" : "-translate-x-full"}
+    md:translate-x-0 md:static md:h-screen md:flex
+`}>
 
                 <div className="p-8 flex items-center justify-between">
                     <h2 className="text-2xl font-black text-white italic tracking-tighter">
@@ -42,8 +42,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <button
                         onClick={() => { navigate("/dashboard"); onClose(); }}
                         className={`w-full text-left p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-pointer transition-all ${location.pathname === "/dashboard"
-                                ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
-                                : "text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+                            ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
+                            : "text-zinc-500 hover:text-white hover:bg-zinc-800/50"
                             }`}
                     >
                         Dashboard
