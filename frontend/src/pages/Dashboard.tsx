@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
-import { ActivityLog } from "../components/ActivityLog"; // Importar aqui
+import { ActivityLog } from "../components/ActivityLog";
 import { toast } from "sonner";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
@@ -62,6 +62,39 @@ export default function Dashboard() {
             return matchesSearch && matchesStatus;
         });
     }, [requests, searchTerm, filterStatus]);
+
+    // FUNÇÃO DE EXPORTAÇÃO (TUDO OU FILTRADO)
+    const handleExportCSV = (scope: "all" | "filtered") => {
+        const dataToExport = scope === "all" ? requests : filteredRequests;
+
+        if (!dataToExport || dataToExport.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+
+        const headers = ["ID", "Client", "Email", "Service", "Status", "Date"];
+        const csvRows = dataToExport.map(req => [
+            req.id,
+            `"${req.name}"`,
+            req.email,
+            `"${req.service}"`,
+            req.status.toUpperCase(),
+            req.created_at ? new Date(req.created_at).toLocaleDateString('pt-PT') : "N/A"
+        ].join(","));
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `export_${scope}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast.success(`Export (${scope}) successful!`);
+    };
 
     async function handleStatusChange(id: number, status: string) {
         if (!token) return;
@@ -134,25 +167,41 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Início da alteração: Grid para separar Pedidos de Logs */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
-                {/* Coluna dos Pedidos (Ocupa 2/3 no Desktop) */}
                 <div className="lg:col-span-2">
                     <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
-                        <input
-                            type="text"
-                            placeholder="Search inquiries..."
-                            className="w-full md:w-96 bg-(--color-bg-secondary) border border-(--color-border) p-3 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                            {/* BOTÕES DE EXPORTAR */}
+                            <button
+                                onClick={() => handleExportCSV("all")}
+                                className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer flex items-center gap-2"
+                            >
+                                All
+                            </button>
+                            <button
+                                onClick={() => handleExportCSV("filtered")}
+                                className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer flex items-center gap-2"
+                            >
+                                Filtered
+                            </button>
+
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="flex-1 md:w-64 bg-(--color-bg-secondary) border border-(--color-border) p-2.5 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-2 overflow-x-auto">
                             {["all", "pending", "in_progress", "done"].map((status) => (
                                 <button
                                     key={status}
                                     onClick={() => setFilterStatus(status)}
-                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${filterStatus === status
+                                            ? "bg-(--color-primary) text-white border-(--color-primary)"
+                                            : "bg-transparent text-zinc-500 border-(--color-border)"
                                         }`}
                                 >
                                     {status.replace("_", " ")}
@@ -163,7 +212,7 @@ export default function Dashboard() {
 
                     <div className="space-y-4">
                         {loading ? (
-                            <p className="text-white text-center">Loading inquiries...</p>
+                            <p className="text-white text-center py-10 opacity-50 italic">Loading inquiries...</p>
                         ) : filteredRequests.length > 0 ? (
                             filteredRequests.map((req) => (
                                 <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
@@ -193,13 +242,10 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Coluna dos Logs (Ocupa 1/3 no Desktop) */}
                 <div className="lg:col-span-1">
                     <ActivityLog />
                 </div>
-
             </div>
-            {/* Fim da alteração */}
         </DashboardLayout>
     );
 }
