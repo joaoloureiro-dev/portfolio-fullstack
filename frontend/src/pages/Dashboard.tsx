@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { ActivityLog } from "../components/ActivityLog";
+import { Skeleton } from "../components/Skeleton"; // Garante que criaste este componente
 import { toast } from "sonner";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
@@ -63,56 +64,6 @@ export default function Dashboard() {
         });
     }, [requests, searchTerm, filterStatus]);
 
-    // FUNÇÃO DE EXPORTAÇÃO (TUDO OU FILTRADO)
-    const handleExportCSV = (scope: "all" | "filtered") => {
-        const dataToExport = scope === "all" ? requests : filteredRequests;
-
-        if (!dataToExport || dataToExport.length === 0) {
-            toast.error("No data to export");
-            return;
-        }
-
-        const headers = ["ID", "Client", "Email", "Service", "Status", "Date"];
-        const csvRows = dataToExport.map(req => [
-            req.id,
-            `"${req.name}"`,
-            req.email,
-            `"${req.service}"`,
-            req.status.toUpperCase(),
-            req.created_at ? new Date(req.created_at).toLocaleDateString('pt-PT') : "N/A"
-        ].join(","));
-
-        const csvContent = [headers.join(","), ...csvRows].join("\n");
-        const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `export_${scope}_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        toast.success(`Export (${scope}) successful!`);
-    };
-
-    async function handleStatusChange(id: number, status: string) {
-        if (!token) return;
-
-        const promise = updateRequestStatus(id, status, token).then((updated) => {
-            setRequests((prev) =>
-                prev.map((r) => r.id === id ? { ...r, status: updated.status } : r)
-            );
-            return updated;
-        });
-
-        toast.promise(promise, {
-            loading: 'Updating status...',
-            success: () => `Inquiry marked as ${status.replace('_', ' ')}`,
-            error: 'Could not update status.',
-        });
-    }
-
     const stats = useMemo(() => {
         const p = requests.filter(r => r.status === "pending").length;
         const i = requests.filter(r => r.status === "in_progress").length;
@@ -127,12 +78,50 @@ export default function Dashboard() {
         };
     }, [requests]);
 
+    const handleExportCSV = (scope: "all" | "filtered") => {
+        const dataToExport = scope === "all" ? requests : filteredRequests;
+        if (!dataToExport || dataToExport.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+        const headers = ["ID", "Client", "Email", "Service", "Status", "Date"];
+        const csvRows = dataToExport.map(req => [
+            req.id, `"${req.name}"`, req.email, `"${req.service}"`, req.status.toUpperCase(),
+            req.created_at ? new Date(req.created_at).toLocaleDateString('pt-PT') : "N/A"
+        ].join(","));
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `export_${scope}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Export (${scope}) successful!`);
+    };
+
+    async function handleStatusChange(id: number, status: string) {
+        if (!token) return;
+        const promise = updateRequestStatus(id, status, token).then((updated) => {
+            setRequests((prev) =>
+                prev.map((r) => r.id === id ? { ...r, status: updated.status } : r)
+            );
+            return updated;
+        });
+        toast.promise(promise, {
+            loading: 'Updating status...',
+            success: () => `Inquiry marked as ${status.replace('_', ' ')}`,
+            error: 'Could not update status.',
+        });
+    }
+
     if (!loading && role !== "admin") {
         return (
-            <div className="min-h-screen bg-(--color-bg) flex items-center justify-center">
-                <div className="text-center p-8 bg-(--color-bg-secondary) rounded-2xl border border-red-500/30">
+            <div className="min-h-screen bg-(--color-bg) flex items-center justify-center p-4">
+                <div className="text-center p-8 bg-(--color-bg-secondary) rounded-2xl border border-red-500/30 max-w-sm">
                     <h1 className="text-xl font-bold text-white mb-2">Access Denied</h1>
-                    <p className="text-zinc-500">You don't have permission to view this page.</p>
+                    <p className="text-zinc-500 text-sm">You don't have permission to view this page.</p>
                 </div>
             </div>
         );
@@ -140,51 +129,62 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
+            {/* STAT CARDS SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard title="Total Requests" value={requests.length} />
-                <StatCard title="Active Users" value={analytics?.activeUsers || 0} growth={analytics?.growth} />
-                <StatCard title="Page Views" value={analytics?.screenPageViews || 0} />
-                <StatCard title="Top Service" value={analytics?.topService || "N/A"} isSmall />
+                {loading ? (
+                    <>
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) h-24">
+                                <Skeleton className="w-16 h-3 mb-3" />
+                                <Skeleton className="w-24 h-8" />
+                            </div>
+                        ))}
+                    </>
+                ) : (
+                    <>
+                        <StatCard title="Total Requests" value={requests.length} />
+                        <StatCard title="Active Users" value={analytics?.activeUsers || 0} growth={analytics?.growth} />
+                        <StatCard title="Page Views" value={analytics?.screenPageViews || 0} />
+                        <StatCard title="Top Service" value={analytics?.topService || "N/A"} isSmall />
+                    </>
+                )}
             </div>
 
+            {/* CHART SECTION - FIXED RECHARTS ISSUE */}
             <div className="bg-(--color-bg-secondary) p-6 rounded-2xl border border-(--color-border) mb-8">
                 <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-(--color-primary) italic uppercase tracking-tighter">
                     Inquiry Volume
                 </h2>
-                <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.chart}>
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
-                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} contentStyle={{ backgroundColor: '#0f0f0f', border: '1px solid #1f1f1f', borderRadius: '12px' }} />
-                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
-                                {stats.chart.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="h-80 w-full min-h-80 flex items-center justify-center">
+                    {loading ? (
+                        <Skeleton className="w-full h-full rounded-xl" />
+                    ) : stats.chart.some(d => d.value > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.chart}>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
+                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} contentStyle={{ backgroundColor: '#0f0f0f', border: '1px solid #1f1f1f', borderRadius: '12px' }} />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
+                                    {stats.chart.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">No data available</div>
+                    )}
                 </div>
             </div>
 
+            {/* MAIN CONTENT GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2">
+                    {/* TOOLBAR */}
                     <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
                         <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                            {/* BOTÕES DE EXPORTAR */}
-                            <button
-                                onClick={() => handleExportCSV("all")}
-                                className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer flex items-center gap-2"
-                            >
-                                All
-                            </button>
-                            <button
-                                onClick={() => handleExportCSV("filtered")}
-                                className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer flex items-center gap-2"
-                            >
-                                Filtered
-                            </button>
-
+                            <button onClick={() => handleExportCSV("all")} className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer">All</button>
+                            <button onClick={() => handleExportCSV("filtered")} className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">Filtered</button>
                             <input
                                 type="text"
                                 placeholder="Search..."
@@ -194,15 +194,12 @@ export default function Dashboard() {
                             />
                         </div>
 
-                        <div className="flex gap-2 overflow-x-auto">
+                        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
                             {["all", "pending", "in_progress", "done"].map((status) => (
                                 <button
                                     key={status}
                                     onClick={() => setFilterStatus(status)}
-                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${filterStatus === status
-                                            ? "bg-(--color-primary) text-white border-(--color-primary)"
-                                            : "bg-transparent text-zinc-500 border-(--color-border)"
-                                        }`}
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer whitespace-nowrap ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"}`}
                                 >
                                     {status.replace("_", " ")}
                                 </button>
@@ -210,9 +207,20 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    {/* REQUESTS LIST WITH SKELETONS */}
                     <div className="space-y-4">
                         {loading ? (
-                            <p className="text-white text-center py-10 opacity-50 italic">Loading inquiries...</p>
+                            <>
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center">
+                                        <div className="space-y-2">
+                                            <Skeleton className="w-32 h-4" />
+                                            <Skeleton className="w-48 h-3" />
+                                        </div>
+                                        <Skeleton className="w-24 h-8 rounded-lg" />
+                                    </div>
+                                ))}
+                            </>
                         ) : filteredRequests.length > 0 ? (
                             filteredRequests.map((req) => (
                                 <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
@@ -242,6 +250,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
+                {/* SIDEBAR */}
                 <div className="lg:col-span-1">
                     <ActivityLog />
                 </div>
