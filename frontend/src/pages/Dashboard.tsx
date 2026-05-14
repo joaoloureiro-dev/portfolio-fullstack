@@ -3,7 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { ActivityLog } from "../components/ActivityLog";
-import { Skeleton } from "../components/Skeleton"; // Garante que criaste este componente
+import { Skeleton } from "../components/Skeleton";
 import { toast } from "sonner";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
@@ -14,6 +14,7 @@ type Request = {
     name: string;
     email: string;
     service: string;
+    message: string; // Adicionado
     status: string;
     created_at?: string;
 };
@@ -58,7 +59,8 @@ export default function Dashboard() {
         return requests.filter((req) => {
             const matchesSearch =
                 req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                req.email.toLowerCase().includes(searchTerm.toLowerCase());
+                req.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                req.service.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = filterStatus === "all" || req.status === filterStatus;
             return matchesSearch && matchesStatus;
         });
@@ -84,9 +86,9 @@ export default function Dashboard() {
             toast.error("No data to export");
             return;
         }
-        const headers = ["ID", "Client", "Email", "Service", "Status", "Date"];
+        const headers = ["ID", "Client", "Email", "Service", "Message", "Status", "Date"];
         const csvRows = dataToExport.map(req => [
-            req.id, `"${req.name}"`, req.email, `"${req.service}"`, req.status.toUpperCase(),
+            req.id, `"${req.name}"`, req.email, `"${req.service}"`, `"${req.message}"`, req.status.toUpperCase(),
             req.created_at ? new Date(req.created_at).toLocaleDateString('pt-PT') : "N/A"
         ].join(","));
 
@@ -105,13 +107,14 @@ export default function Dashboard() {
         if (!token) return;
         const promise = updateRequestStatus(id, status, token).then((updated) => {
             setRequests((prev) =>
-                prev.map((r) => r.id === id ? { ...r, status: updated.status } : r)
+                prev.map((r) => r.id === id ? { ...r, status: updated.status || status } : r)
             );
             return updated;
         });
+
         toast.promise(promise, {
             loading: 'Updating status...',
-            success: () => `Inquiry marked as ${status.replace('_', ' ')}`,
+            success: 'Status updated successfully',
             error: 'Could not update status.',
         });
     }
@@ -150,7 +153,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* CHART SECTION - FIXED RECHARTS ISSUE */}
+            {/* CHART SECTION */}
             <div className="bg-(--color-bg-secondary) p-6 rounded-2xl border border-(--color-border) mb-8">
                 <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-(--color-primary) italic uppercase tracking-tighter">
                     Inquiry Volume
@@ -187,7 +190,7 @@ export default function Dashboard() {
                             <button onClick={() => handleExportCSV("filtered")} className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">Filtered</button>
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder="Search client or service..."
                                 className="flex-1 md:w-64 bg-(--color-bg-secondary) border border-(--color-border) p-2.5 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -207,39 +210,64 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* REQUESTS LIST WITH SKELETONS */}
+                    {/* REQUESTS LIST */}
                     <div className="space-y-4">
                         {loading ? (
                             <>
                                 {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center">
-                                        <div className="space-y-2">
-                                            <Skeleton className="w-32 h-4" />
-                                            <Skeleton className="w-48 h-3" />
-                                        </div>
-                                        <Skeleton className="w-24 h-8 rounded-lg" />
+                                    <div key={i} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) h-32">
+                                        <Skeleton className="w-48 h-5 mb-4" />
+                                        <Skeleton className="w-full h-12 rounded-lg" />
                                     </div>
                                 ))}
                             </>
                         ) : filteredRequests.length > 0 ? (
                             filteredRequests.map((req) => (
-                                <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex justify-between items-center transition-all hover:bg-zinc-900/50">
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="font-bold text-white">{req.name}</h3>
-                                            <StatusBadge status={req.status} />
+                                <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex flex-col gap-4 transition-all hover:bg-zinc-900/30 group">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <h3 className="font-bold text-white text-lg">{req.name}</h3>
+                                                <StatusBadge status={req.status} />
+                                            </div>
+                                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
+                                                {req.email} • <span className="text-(--color-primary)">{req.service}</span>
+                                            </p>
                                         </div>
-                                        <p className="text-zinc-500 text-sm">{req.email}</p>
+
+                                        <div className="flex items-center gap-3">
+                                            <select
+                                                value={req.status}
+                                                onChange={(e) => handleStatusChange(req.id, e.target.value)}
+                                                className="bg-(--color-bg) text-[10px] text-white font-black uppercase p-2 rounded-lg border border-zinc-800 outline-none cursor-pointer focus:border-(--color-primary)"
+                                            >
+                                                <option value="pending">Pending</option>
+                                                <option value="in_progress">In Progress</option>
+                                                <option value="done">Done</option>
+                                            </select>
+
+                                            <a
+                                                href={`mailto:${req.email}?subject=Regarding your request for ${req.service}`}
+                                                className="p-2 bg-white text-black rounded-lg hover:bg-(--color-primary) hover:text-white transition-all group"
+                                                title="Reply by email"
+                                            >
+                                                <i className="fa-solid fa-paper-plane text-xs"></i>
+                                            </a>
+                                        </div>
                                     </div>
-                                    <select
-                                        value={req.status}
-                                        onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                                        className="bg-(--color-bg) text-xs text-white font-bold p-2 rounded-lg border border-(--color-border) outline-none cursor-pointer hover:border-(--color-primary)"
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="in_progress">In Progress</option>
-                                        <option value="done">Done</option>
-                                    </select>
+
+                                    {/* Message Box */}
+                                    <div className="bg-black/40 p-4 rounded-xl border border-zinc-800/50">
+                                        <p className="text-zinc-400 text-sm italic leading-relaxed">
+                                            "{req.message || "No message provided."}"
+                                        </p>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-tighter">
+                                            Received on: {req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A'}
+                                        </span>
+                                    </div>
                                 </div>
                             ))
                         ) : (

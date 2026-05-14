@@ -1,8 +1,13 @@
-const API_URL = "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Função auxiliar para evitar repetir código e tratar erros globais
 async function authorizedFetch(url: string, options: RequestInit = {}) {
-    const res = await fetch(url, options);
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            "Accept": "application/json",
+        }
+    });
 
     if (res.status === 403) {
         window.location.href = "/unauthorized";
@@ -15,25 +20,22 @@ async function authorizedFetch(url: string, options: RequestInit = {}) {
         return;
     }
 
-    if (!res.ok) {
-        throw new Error(`Request failed with status ${res.status}`);
-    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
 
-    return res.json();
+    return data;
 }
 
 // 1. LISTAR PEDIDOS
 export async function getRequests(token: string) {
-    return authorizedFetch(`${API_URL}/admin/requests`, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
+    return authorizedFetch(`${API_URL}/requests`, {
+        headers: { Authorization: `Bearer ${token}` }
     });
 }
 
 // 2. ATUALIZAR STATUS
 export async function updateRequestStatus(id: number, status: string, token: string) {
-    return authorizedFetch(`${API_URL}/admin/requests/${id}/status`, {
+    return authorizedFetch(`${API_URL}/requests/${id}/status`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -43,13 +45,10 @@ export async function updateRequestStatus(id: number, status: string, token: str
     });
 }
 
-// 3. OBTER ANALYTICS (Agora usando o authorizedFetch corretamente)
+// 3. OBTER ANALYTICS
 export async function getAnalytics(token: string) {
-    return authorizedFetch(`${API_URL}/admin/analytics`, {
-        method: "GET",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        }
+    // Nota: Garante que tens esta rota /analytics configurada no backend
+    return authorizedFetch(`${API_URL}/analytics`, {
+        headers: { Authorization: `Bearer ${token}` }
     });
 }

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from 'sonner';
 
+import Home from "./pages/Home"; // Nova página da Fase 2
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Unauthorized from "./pages/Unauthorized";
@@ -9,6 +10,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 export default function App() {
   return (
     <>
+      {/* Notificações globais */}
       <Toaster
         theme="dark"
         position="bottom-right"
@@ -18,11 +20,14 @@ export default function App() {
 
       <BrowserRouter>
         <Routes>
-          {/* Rotas Públicas */}
-          <Route path="/" element={<Login />} />
+          {/* 🏠 ROTA PÚBLICA PRINCIPAL (Landing Page Migrada) */}
+          <Route path="/" element={<Home />} />
+
+          {/* 🔑 AUTENTICAÇÃO */}
+          <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Rota Protegida - Apenas para Admins */}
+          {/* 📊 ÁREA ADMINISTRATIVA (Protegida) */}
           <Route
             path="/dashboard"
             element={
@@ -32,7 +37,7 @@ export default function App() {
             }
           />
 
-          {/* Rota 404 - Fallback com estilo Tailwind */}
+          {/* 🚀 ROTA 404 - Estilo Profissional */}
           <Route
             path="*"
             element={
@@ -40,7 +45,7 @@ export default function App() {
                 <h1 className="text-9xl font-black text-(--color-primary) opacity-20 italic tracking-tighter">
                   404
                 </h1>
-                <div className="-mt-10"> {/* Alterado aqui */}
+                <div className="-mt-10">
                   <h2 className="text-xl font-bold text-white uppercase tracking-widest">
                     Lost in Space?
                   </h2>
