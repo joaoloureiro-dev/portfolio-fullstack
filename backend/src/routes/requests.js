@@ -62,39 +62,43 @@ export default async function requestsRoutes(app) {
         };
     });
 
-    // 📝 Atualizar Status (CORRIGIDO)
+    // 📝 Atualizar Status (CORRIGIDO E TESTADO)
     app.patch("/requests/:id/status", { preHandler: app.authenticate }, async (request, reply) => {
         const { id } = request.params;
         const { status } = request.body;
 
         try {
-            // 1. Verificar se o registo existe e pegar o status antigo
+            // 1. Primeiro pegamos os dados antigos para o Log
             const oldData = await pool.query("SELECT status FROM requests WHERE id = $1", [id]);
 
             if (oldData.rows.length === 0) {
                 return reply.status(404).send({ error: "Pedido não encontrado" });
             }
 
-            // 2. Executar o Update
+            // 2. Executamos o Update
             const result = await pool.query(
                 "UPDATE requests SET status = $1 WHERE id = $2 RETURNING *",
                 [status, id]
             );
 
-            // 3. Criar Log (Protegido por try/catch para não quebrar o update principal)
+            // 3. Criamos o Log e notificamos o Socket
             try {
                 await createLog({
-                    userId: request.user?.id || 1, // Garante que o ID existe vindo do JWT
+                    userId: request.user?.id || 1,
                     action: "UPDATE_STATUS",
                     details: `ID #${id}: ${oldData.rows[0].status} -> ${status}`,
                     entityType: "requests",
                     entityId: id
                 });
+
+                // IMPORTANTE: Notificar o frontend que há novos logs e lista atualizada
+                broadcast({ type: "NEW_LOG" });
+                broadcast({ type: "UPDATE_LIST" });
+
             } catch (logErr) {
                 console.error("Erro ao criar log:", logErr);
             }
 
-            broadcast({ type: "UPDATE_LIST" });
             return result.rows[0];
 
         } catch (err) {
