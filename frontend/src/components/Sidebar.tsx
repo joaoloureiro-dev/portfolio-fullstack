@@ -50,12 +50,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         Dashboard
                     </button>
 
-                    {/* 📈 Botão Google Analytics */}
+                    {/* 📈 Botão Google Analytics com Estilo Laranja */}
                     <button
                         onClick={() => { navigate("/dashboard/analytics"); onClose(); }}
                         className={`w-full text-left p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-pointer transition-all ${location.pathname === "/dashboard/analytics"
-                            ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
-                            : "text-zinc-500 hover:text-white hover:bg-zinc-800/50 border border-transparent"
+                            ? "bg-orange-500/10 text-orange-500 border border-orange-500/20"
+                            : "text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 border border-transparent"
                             }`}
                     >
                         Google Analytics
