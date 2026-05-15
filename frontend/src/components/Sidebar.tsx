@@ -39,14 +39,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2">
+                    {/* Botão Geral Dashboard */}
                     <button
                         onClick={() => { navigate("/dashboard"); onClose(); }}
                         className={`w-full text-left p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-pointer transition-all ${location.pathname === "/dashboard"
                             ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
-                            : "text-zinc-500 hover:text-white hover:bg-zinc-800/50"
+                            : "text-zinc-500 hover:text-white hover:bg-zinc-800/50 border border-transparent"
                             }`}
                     >
                         Dashboard
+                    </button>
+
+                    {/* 📈 Botão Google Analytics */}
+                    <button
+                        onClick={() => { navigate("/dashboard/analytics"); onClose(); }}
+                        className={`w-full text-left p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-pointer transition-all ${location.pathname === "/dashboard/analytics"
+                            ? "bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20"
+                            : "text-zinc-500 hover:text-white hover:bg-zinc-800/50 border border-transparent"
+                            }`}
+                    >
+                        Google Analytics
                     </button>
                 </nav>
 

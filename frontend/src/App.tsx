@@ -6,6 +6,7 @@ import ReactGA from "react-ga4";
 import Home from "./pages/Home"; // Nova página da Fase 2
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard"; // Adicionado o import da nova página
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
@@ -36,6 +37,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 📈 NOVA PÁGINA DE ANALYTICS (Protegida) */}
+      <Route
+        path="/dashboard/analytics"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AnalyticsDashboard />
           </ProtectedRoute>
         }
       />
