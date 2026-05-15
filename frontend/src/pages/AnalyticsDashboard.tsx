@@ -1,11 +1,23 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // 📡 Importado para resolver o erro do navigate
+import { ArrowLeft } from "lucide-react";       // 🎨 Importado para resolver o erro do ícone
 
 export default function AnalyticsDashboard() {
     // Estado falso para simular filtros de data futuros (Últimos 7 dias, 30 dias, etc.)
     const [period, setPeriod] = useState("7d");
+    const navigate = useNavigate(); // ⚙️ Inicialização do hook de navegação
 
     return (
         <div className="min-h-screen bg-(--color-bg) text-white p-6 md:p-10">
+
+            {/* 🔙 BOTÃO VOLTAR COM MICRO-ANIMAÇÃO */}
+            <button
+                onClick={() => navigate("/dashboard")}
+                className="flex items-center gap-2 text-zinc-500 hover:text-(--color-primary) text-[10px] font-black uppercase tracking-widest mb-6 transition-all cursor-pointer group"
+            >
+                <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+                Back to Dashboard
+            </button>
 
             {/* HEADER DA PÁGINA */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10 border-b border-(--color-border) pb-6">
