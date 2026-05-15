@@ -6,7 +6,7 @@ import { ActivityLog } from "../components/ActivityLog";
 import { Skeleton } from "../components/Skeleton";
 import { toast } from "sonner";
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from "recharts";
 
 type Request = {
@@ -14,7 +14,7 @@ type Request = {
     name: string;
     email: string;
     service: string;
-    message: string; // Adicionado
+    message: string;
     status: string;
     created_at?: string;
 };
@@ -40,7 +40,6 @@ export default function Dashboard() {
         async function loadData() {
             setLoading(true);
             try {
-                // Executamos as chamadas separadamente para que uma não derrube a outra
                 const requestsData = await getRequests(token as string).catch(() => []);
                 const analyticsData = await getAnalytics(token as string).catch(() => null);
 
@@ -75,7 +74,7 @@ export default function Dashboard() {
             pending: p, inProgress: i, done: d,
             chart: [
                 { name: "Pending", value: p, color: "#3f3f46" },
-                { name: "In Progress", value: i, color: "#ff7b00" },
+                { name: "In Progress", value: i, color: "#f97316" },
                 { name: "Done", value: d, color: "#22c55e" }
             ]
         };
@@ -154,29 +153,66 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* CHART SECTION */}
-            <div className="bg-(--color-bg-secondary) p-6 rounded-2xl border border-(--color-border) mb-8">
-                <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-(--color-primary) italic uppercase tracking-tighter">
-                    Inquiry Volume
-                </h2>
-                <div className="h-80 w-full min-h-80 flex items-center justify-center">
+            {/* CHART SECTION - UPDATED PROFESSIONAL VERSION */}
+            <div className="h-80 w-full bg-(--color-bg-secondary)/50 border border-(--color-border) rounded-2xl p-6 flex flex-col mb-8">
+                <header className="flex items-center justify-between mb-6">
+                    <h2 className="text-white font-black text-[10px] uppercase tracking-tighter flex items-center gap-2 opacity-50">
+                        <span className="w-1 h-3 bg-orange-500 rounded-full"></span>
+                        Inquiry Volume
+                    </h2>
+                    <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">Last 7 Days</span>
+                </header>
+
+                <div className="flex-1 w-full min-h-0 flex items-center justify-center">
                     {loading ? (
-                        <Skeleton className="w-full h-full rounded-xl" />
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-8 h-8 border-2 border-orange-500/10 border-t-orange-500 rounded-full animate-spin"></div>
+                            <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">Fetching Analytics...</p>
+                        </div>
                     ) : stats.chart.some(d => d.value > 0) ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.chart}>
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11 }} />
-                                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} contentStyle={{ backgroundColor: '#0f0f0f', border: '1px solid #1f1f1f', borderRadius: '12px' }} />
-                                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
+                        <ResponsiveContainer width="99%" height="100%">
+                            <BarChart data={stats.chart} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#f97316" stopOpacity={0.8} />
+                                        <stop offset="100%" stopColor="#f97316" stopOpacity={0.05} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" opacity={0.4} />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#71717a', fontSize: 9, fontWeight: 800 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#71717a', fontSize: 9 }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: '#27272a', opacity: 0.3 }}
+                                    contentStyle={{
+                                        backgroundColor: '#09090b',
+                                        border: '1px solid #27272a',
+                                        borderRadius: '8px',
+                                        fontSize: '10px',
+                                        fontWeight: '900',
+                                        textTransform: 'uppercase'
+                                    }}
+                                    itemStyle={{ color: '#f97316' }}
+                                    labelStyle={{ color: '#fff', marginBottom: '4px' }}
+                                />
+                                <Bar dataKey="value" fill="url(#barGradient)" radius={[4, 4, 0, 0]} barSize={40}>
                                     {stats.chart.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                        <Cell key={`cell-${index}`} fill={entry.name === "In Progress" ? "url(#barGradient)" : entry.color} />
                                     ))}
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">No data available</div>
+                        <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.2em] italic opacity-40">No data detected</p>
                     )}
                 </div>
             </div>
@@ -184,7 +220,6 @@ export default function Dashboard() {
             {/* MAIN CONTENT GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2">
-                    {/* TOOLBAR */}
                     <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
                         <div className="flex flex-wrap gap-2 w-full md:w-auto">
                             <button onClick={() => handleExportCSV("all")} className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer">All</button>
@@ -211,7 +246,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* REQUESTS LIST */}
                     <div className="space-y-4">
                         {loading ? (
                             <>
@@ -259,7 +293,6 @@ export default function Dashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Message Box */}
                                     <div className="bg-black/40 p-4 rounded-xl border border-zinc-800/50">
                                         <p className="text-zinc-400 text-sm italic leading-relaxed">
                                             "{req.message || "No message provided."}"
@@ -281,7 +314,6 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* SIDEBAR */}
                 <div className="lg:col-span-1">
                     <ActivityLog />
                 </div>
