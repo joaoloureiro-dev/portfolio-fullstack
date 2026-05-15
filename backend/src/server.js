@@ -22,7 +22,7 @@ const app = Fastify({
 await app.register(jwt, {
     secret: process.env.JWT_SECRET,
     sign: {
-        expiresIn: '1h' // Agora sim, dentro de um objeto próprio
+        expiresIn: '1h'
     }
 });
 
@@ -40,8 +40,8 @@ app.decorate("authenticate", async function (request, reply) {
 await app.register(cors, {
     origin: "http://localhost:5173",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"]
-
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 });
 
 app.addHook('onSend', async (request, reply, payload) => {
@@ -52,15 +52,38 @@ app.addHook('onSend', async (request, reply, payload) => {
 // --------------------
 // ⚡ WEBSOCKETS
 // --------------------
-await app.register(websocket);
+await app.register(websocket, {
+    options: { maxPayload: 1048576 }
+});
 
-// WebSocket route
-app.get("/ws", { websocket: true }, (connection) => {
+app.get("/ws", { websocket: true }, (connection, req) => {
+    /**
+     * 🛠️ FIX DEFINITIVO:
+     * Em algumas versões do @fastify/websocket, o socket está em connection.socket.
+     * Em outras, o próprio connection é o socket (duplex stream).
+     */
+    const socket = connection?.socket || connection;
 
-    addClient(connection.socket);
+    // Verificação de segurança: se não tem o método 'on', não é um socket válido
+    if (!socket || typeof socket.on !== 'function') {
+        app.log.error("❌ Erro: Socket não encontrado ou inválido na conexão WebSocket");
+        return;
+    }
 
-    connection.socket.on("close", () => {
-        removeClient(connection.socket);
+    addClient(socket);
+    app.log.info("🚀 Cliente conectado ao WebSocket com sucesso");
+
+    socket.on("message", (message) => {
+        app.log.info(`📩 Mensagem recebida: ${message}`);
+    });
+
+    socket.on("close", () => {
+        removeClient(socket);
+        app.log.info("🔌 Cliente desconectado");
+    });
+
+    socket.on("error", (err) => {
+        app.log.error("❌ Erro no Socket:", err.message);
     });
 });
 
@@ -91,7 +114,7 @@ app.get("/db-test", async () => {
 const start = async () => {
     try {
         await app.listen({
-            port: process.env.PORT || 3000,
+            port: Number(process.env.PORT) || 3000,
             host: "0.0.0.0"
         });
     } catch (err) {
@@ -102,7 +125,4 @@ const start = async () => {
 
 start();
 
-// --------------------
-// EXPORT BROADCAST (IMPORTANT)
-// --------------------
 export { broadcast };
