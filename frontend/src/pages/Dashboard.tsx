@@ -38,16 +38,17 @@ export default function Dashboard() {
         if (!token) return;
 
         async function loadData() {
+            setLoading(true);
             try {
-                const [requestsData, analyticsData] = await Promise.all([
-                    getRequests(token as string),
-                    getAnalytics(token as string)
-                ]);
-                setRequests(requestsData);
+                // Executamos as chamadas separadamente para que uma não derrube a outra
+                const requestsData = await getRequests(token as string).catch(() => []);
+                const analyticsData = await getAnalytics(token as string).catch(() => null);
+
+                setRequests(Array.isArray(requestsData) ? requestsData : []);
                 setAnalytics(analyticsData);
             } catch (err) {
-                console.error("Data loading error:", err);
-                toast.error("Failed to load dashboard data");
+                console.error("Dashboard error:", err);
+                toast.error("Error loading some data");
             } finally {
                 setLoading(false);
             }
@@ -247,9 +248,11 @@ export default function Dashboard() {
                                             </select>
 
                                             <a
-                                                href={`mailto:${req.email}?subject=Regarding your request for ${req.service}`}
+                                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${req.email}&su=${encodeURIComponent(`Regarding your request for ${req.service}`)}&body=${encodeURIComponent(`Hello ${req.name},\n\nRegarding your message: "${req.message}"\n\n`)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="p-2 bg-white text-black rounded-lg hover:bg-(--color-primary) hover:text-white transition-all group"
-                                                title="Reply by email"
+                                                title="Reply via Gmail"
                                             >
                                                 <i className="fa-solid fa-paper-plane text-xs"></i>
                                             </a>

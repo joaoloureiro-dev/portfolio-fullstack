@@ -5,7 +5,7 @@ export default function Sidebar() {
     const { token } = useAuth();
 
     return (
-        <header className="lg:fixed lg:w-1/2 lg:h-screen p-6 lg:p-24 flex flex-col justify-between border-r border-zinc-900/50">
+        <header className="lg:fixed lg:w-1/2 lg:h-screen p-6 lg:p-24 flex flex-col justify-between border-r border-zinc-900/50 bg-(--color-bg) z-20">
             <div>
                 <div className="flex justify-between items-start">
                     <div>
@@ -15,18 +15,11 @@ export default function Sidebar() {
                         <h2 className="text-(--color-primary) text-lg font-black uppercase tracking-widest mt-4 italic">
                             Junior Fullstack Developer
                         </h2>
-                        <p className="text-zinc-500 font-bold mt-2 text-sm tracking-tight uppercase">
-                            I build scalable web applications
-                        </p>
                     </div>
 
                     <div className="flex flex-col gap-4 items-end">
-                        <button className="text-[10px] font-black border border-zinc-800 px-2 py-1 rounded hover:border-white transition-all text-zinc-500 hover:text-white uppercase cursor-pointer">
-                            EN / PT
-                        </button>
-                        {/* Se logado, vai direto pro Dashboard. Se não, vai pro Login */}
-                        <Link to={token ? "/dashboard" : "/login"} className="text-zinc-600 text-[10px] font-black border border-zinc-800 px-2 py-1 rounded hover:border-(--color-primary) hover:text-(--color-primary) transition-all uppercase">
-                            {token ? "Dashboard" : "Admin Login"}
+                        <Link to={token ? "/dashboard" : "/login"} className="text-zinc-600 text-[10px] font-black border border-zinc-800 px-3 py-2 rounded hover:border-(--color-primary) hover:text-(--color-primary) transition-all uppercase">
+                            {token ? "Go to Dashboard" : "Admin Login"}
                         </Link>
                     </div>
                 </div>
@@ -45,10 +38,17 @@ export default function Sidebar() {
                 </nav>
             </div>
 
-            <div className="flex gap-6 text-2xl text-zinc-500">
-                <a href="https://github.com/joaoloureiro-dev" target="_blank" className="hover:text-white transition-colors"><i className="fa-brands fa-github"></i></a>
-                <a href="https://linkedin.com/in/joaoloureiro" target="_blank" className="hover:text-white transition-colors"><i className="fa-brands fa-linkedin"></i></a>
-                <a href="https://x.com/joaoloureiro" target="_blank" className="hover:text-white transition-colors"><i className="fa-brands fa-x-twitter"></i></a>
+            {/* SOCIAL LINKS - Garantir que os icons aparecem */}
+            <div className="flex gap-8 text-2xl text-zinc-500 mb-4">
+                <a href="https://github.com/joaoloureiro-dev" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                    <i className="fa-brands fa-github"></i>
+                </a>
+                <a href="https://linkedin.com/in/joaoloureiro" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                    <i className="fa-brands fa-linkedin"></i>
+                </a>
+                <a href="https://x.com/joaoloureiro" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                    <i className="fa-brands fa-x-twitter"></i>
+                </a>
             </div>
         </header>
     );
