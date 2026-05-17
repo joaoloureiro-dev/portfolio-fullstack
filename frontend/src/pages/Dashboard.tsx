@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getRequests, updateRequestStatus, getAnalytics } from "../services/api";
+// 📡 Adicionada a função logEmailSent nos teus imports de serviços da API
+import { getRequests, updateRequestStatus, getAnalytics, deleteRequest, clearActivityLogs, logEmailSent } from "../services/api";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { ActivityLog } from "../components/ActivityLog";
 import { Skeleton } from "../components/Skeleton";
 import { toast } from "sonner";
+import { Mail, Trash2, LogOut } from "lucide-react"; // 🎨 Ícones modernos e consistentes
+
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from "recharts";
@@ -33,6 +36,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [refreshLogs, setRefreshLogs] = useState(0); // 🔄 Gatilho para atualizar o componente ActivityLog
 
     useEffect(() => {
         if (!token) return;
@@ -53,7 +57,7 @@ export default function Dashboard() {
             }
         }
         loadData();
-    }, [token]);
+    }, [token, refreshLogs]);
 
     const filteredRequests = useMemo(() => {
         return requests.filter((req) => {
@@ -109,6 +113,7 @@ export default function Dashboard() {
             setRequests((prev) =>
                 prev.map((r) => r.id === id ? { ...r, status: updated.status || status } : r)
             );
+            setRefreshLogs(prev => prev + 1); // Atualiza os logs de atividade
             return updated;
         });
 
@@ -117,6 +122,50 @@ export default function Dashboard() {
             success: 'Status updated successfully',
             error: 'Could not update status.',
         });
+    }
+
+    // 📩 Função para disparar o log de envio de e-mail e abrir o Gmail client
+    async function handleEmailClick(req: Request) {
+        if (!token) return;
+
+        // Dispara o log em background sem bloquear a abertura da aba do e-mail
+        logEmailSent(req.name, req.service, token)
+            .then(() => setRefreshLogs(prev => prev + 1))
+            .catch(err => console.error("Erro ao gerar log de email", err));
+
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${req.email}&su=${encodeURIComponent(`Regarding your request for ${req.service}`)}&body=${encodeURIComponent(`Hello ${req.name},\n\nRegarding your message: "${req.message}"\n\n`)}`;
+        window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    }
+
+    // 🗑️ Função para eliminar um Request
+    async function handleDeleteRequest(id: number) {
+        if (!token) return;
+        if (!window.confirm("Are you sure you want to permanently delete this request?")) return;
+
+        const promise = deleteRequest(id, token).then(() => {
+            setRequests((prev) => prev.filter((r) => r.id !== id));
+            setRefreshLogs(prev => prev + 1);
+        });
+
+        toast.promise(promise, {
+            loading: 'Deleting request...',
+            success: 'Request deleted successfully',
+            error: 'Failed to delete request.',
+        });
+    }
+
+    // 🧹 Função para limpar todos os logs de atividade
+    async function handleClearLogs() {
+        if (!token) return;
+        if (!window.confirm("Clear all activity history permanently?")) return;
+
+        try {
+            await clearActivityLogs(token);
+            setRefreshLogs(prev => prev + 1);
+            toast.success("Activity log cleared");
+        } catch (error) {
+            toast.error("Failed to clear activity log");
+        }
     }
 
     if (!loading && role !== "admin") {
@@ -133,7 +182,7 @@ export default function Dashboard() {
     return (
         <DashboardLayout>
             {/* STAT CARDS SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {loading ? (
                     <>
                         {[...Array(4)].map((_, i) => (
@@ -153,7 +202,7 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* CHART SECTION - UPDATED PROFESSIONAL VERSION */}
+            {/* CHART SECTION */}
             <div className="h-80 w-full bg-(--color-bg-secondary)/50 border border-(--color-border) rounded-2xl p-6 flex flex-col mb-8">
                 <header className="flex items-center justify-between mb-6">
                     <h2 className="text-white font-black text-[10px] uppercase tracking-tighter flex items-center gap-2 opacity-50">
@@ -220,25 +269,30 @@ export default function Dashboard() {
             {/* MAIN CONTENT GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2">
-                    <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
-                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                            <button onClick={() => handleExportCSV("all")} className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer">All</button>
-                            <button onClick={() => handleExportCSV("filtered")} className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer">Filtered</button>
+                    {/* FILTROS E PESQUISA TOTALMENTE RESPONSIVOS */}
+                    <div className="flex flex-col gap-4 mb-6">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
                             <input
                                 type="text"
                                 placeholder="Search client or service..."
-                                className="flex-1 md:w-64 bg-(--color-bg-secondary) border border-(--color-border) p-2.5 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
+                                className="w-full sm:flex-1 bg-(--color-bg-secondary) border border-(--color-border) p-2.5 rounded-xl text-xs text-white focus:border-(--color-primary) outline-none font-bold"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
+                            <div className="flex gap-2 self-end sm:self-auto">
+                                <button onClick={() => handleExportCSV("all")} className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[10px] font-black uppercase hover:border-white hover:text-white transition-all cursor-pointer whitespace-nowrap">All</button>
+                                <button onClick={() => handleExportCSV("filtered")} className="px-3 py-2 rounded-xl border border-emerald-500/30 text-emerald-500 text-[10px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all cursor-pointer whitespace-nowrap">Filtered</button>
+                            </div>
                         </div>
 
-                        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
+                        {/* Barra com scroll horizontal perfeito para Mobile */}
+                        <div className="flex gap-2 overflow-x-auto w-full pb-2 scrollbar-none snap-x flex-nowrap">
                             {["all", "pending", "in_progress", "done"].map((status) => (
                                 <button
                                     key={status}
                                     onClick={() => setFilterStatus(status)}
-                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer whitespace-nowrap ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"}`}
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer snap-mini snap-start whitespace-nowrap ${filterStatus === status ? "bg-(--color-primary) text-white border-(--color-primary)" : "bg-transparent text-zinc-500 border-(--color-border)"}`}
+                                // Corrigido a string de exibição para lidar com underscore
                                 >
                                     {status.replace("_", " ")}
                                 </button>
@@ -246,10 +300,11 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    {/* LISTA DE CARDS DE INQUIRIES */}
                     <div className="space-y-4">
                         {loading ? (
                             <>
-                                {[...Array(5)].map((_, i) => (
+                                {[...Array(3)].map((_, i) => (
                                     <div key={i} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) h-32">
                                         <Skeleton className="w-48 h-5 mb-4" />
                                         <Skeleton className="w-full h-12 rounded-lg" />
@@ -258,38 +313,47 @@ export default function Dashboard() {
                             </>
                         ) : filteredRequests.length > 0 ? (
                             filteredRequests.map((req) => (
-                                <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex flex-col gap-4 transition-all hover:bg-zinc-900/30 group">
-                                    <div className="flex justify-between items-start">
+                                <div key={req.id} className="bg-(--color-bg-secondary) p-5 rounded-2xl border border-(--color-border) flex flex-col gap-4 transition-all hover:bg-zinc-900/30 group relative">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                                         <div>
-                                            <div className="flex items-center gap-3 mb-1">
+                                            <div className="flex flex-wrap items-center gap-3 mb-1">
                                                 <h3 className="font-bold text-white text-lg">{req.name}</h3>
                                                 <StatusBadge status={req.status} />
                                             </div>
-                                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
+                                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest break-all">
                                                 {req.email} • <span className="text-(--color-primary)">{req.service}</span>
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
+                                        {/* ZONA DE AÇÕES DOS CARDS (Responsiva e Alinhada) */}
+                                        <div className="flex items-center gap-2 self-start sm:self-auto">
                                             <select
                                                 value={req.status}
                                                 onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                                                className="bg-(--color-bg) text-[10px] text-white font-black uppercase p-2 rounded-lg border border-zinc-800 outline-none cursor-pointer focus:border-(--color-primary)"
+                                                className="bg-(--color-bg) text-[10px] text-white font-black uppercase p-2.5 rounded-xl border border-zinc-800 outline-none cursor-pointer focus:border-(--color-primary) h-9"
                                             >
                                                 <option value="pending">Pending</option>
                                                 <option value="in_progress">In Progress</option>
                                                 <option value="done">Done</option>
                                             </select>
 
-                                            <a
-                                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${req.email}&su=${encodeURIComponent(`Regarding your request for ${req.service}`)}&body=${encodeURIComponent(`Hello ${req.name},\n\nRegarding your message: "${req.message}"\n\n`)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 bg-white text-black rounded-lg hover:bg-(--color-primary) hover:text-white transition-all group"
+                                            {/* ✨ Substituído o <a> por um <button> interativo que dispara o log e abre o Gmail */}
+                                            <button
+                                                onClick={() => handleEmailClick(req)}
+                                                className="p-2.5 bg-white text-black rounded-xl hover:bg-(--color-primary) hover:text-white transition-all flex items-center justify-center w-9 h-9 cursor-pointer"
                                                 title="Reply via Gmail"
                                             >
-                                                <i className="fa-solid fa-paper-plane text-xs"></i>
-                                            </a>
+                                                <Mail size={14} strokeWidth={2.5} />
+                                            </button>
+
+                                            {/* Botão para Eliminar Request */}
+                                            <button
+                                                onClick={() => handleDeleteRequest(req.id)}
+                                                className="p-2.5 bg-zinc-800/80 text-zinc-400 rounded-xl hover:bg-red-500/20 hover:text-red-500 border border-zinc-700/50 hover:border-red-500/30 transition-all flex items-center justify-center w-9 h-9 cursor-pointer"
+                                                title="Delete Request"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </div>
 
@@ -314,8 +378,20 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="lg:col-span-1">
-                    <ActivityLog />
+                {/* PAINEL LATERAL DE LOGS COM FUNÇÃO CLEAR */}
+                <div className="lg:col-span-1 bg-(--color-bg-secondary)/30 p-4 rounded-2xl border border-(--color-border) flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b border-(--color-border) pb-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Live Activity Log</h4>
+                        <button
+                            onClick={handleClearLogs}
+                            className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-zinc-500 hover:text-red-400 transition-all cursor-pointer bg-zinc-800/40 px-2 py-1 rounded-md border border-zinc-700/30"
+                        >
+                            <LogOut size={10} className="rotate-90" />
+                            Clear Logs
+                        </button>
+                    </div>
+                    {/* Passamos a key dinâmica para recarregar o componente quando limpo */}
+                    <ActivityLog key={refreshLogs} />
                 </div>
             </div>
         </DashboardLayout>

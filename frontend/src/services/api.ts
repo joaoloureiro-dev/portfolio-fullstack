@@ -47,8 +47,34 @@ export async function updateRequestStatus(id: number, status: string, token: str
 
 // 3. OBTER ANALYTICS
 export async function getAnalytics(token: string) {
-    // Nota: Garante que tens esta rota /analytics configurada no backend
     return authorizedFetch(`${API_URL}/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
+    });
+}
+
+// 🗑️ 4. ELIMINAR PEDIDO PERMANENTEMENTE
+export async function deleteRequest(id: number, token: string) {
+    return authorizedFetch(`${API_URL}/requests/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+}
+
+// 🧹 5. LIMPAR LOGS DE ATIVIDADE
+export async function clearActivityLogs(token: string) {
+    return authorizedFetch(`${API_URL}/logs`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+}
+export async function logEmailSent(clientName: string, service: string, token: string) {
+    return authorizedFetch(`${API_URL}/logs/email`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ clientName, service })
     });
 }
