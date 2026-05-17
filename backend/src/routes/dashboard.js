@@ -1,6 +1,7 @@
 import pool from "../db/index.js";
 import { checkRole } from "../middleware/roles.js";
 import { broadcast } from "../services/socket.js";
+import { getGA4Data } from '../services/analytics.js';
 
 export default async function dashboardRoutes(app) {
 
@@ -93,22 +94,24 @@ export default async function dashboardRoutes(app) {
         }
     });
     // -----------------------------------------------------------
-    // 4. ANALYTICS (MOCK DATA - Temporary)
+    // 4. ANALYTICS (DADOS REAIS DO GA4)
     // -----------------------------------------------------------
     app.get("/admin/analytics", adminAuth, async (req, reply) => {
         try {
-            // Simulamos dados que viriam do Google Analytics
-            // Mais tarde, trocamos isto pela API real
-            const mockData = {
-                activeUsers: Math.floor(Math.random() * (150 - 50) + 50), // Entre 50 e 150
-                screenPageViews: Math.floor(Math.random() * (1200 - 800) + 800), // Entre 800 e 1200
-                topService: "Website Development",
-                growth: "+12.5%"
+            // Chamamos o serviço real. Podes passar '30d' como padrão para a visão geral do admin
+            const ga4Data = await getGA4Data('30d');
+
+            // Mapeamos a resposta real para o formato que o teu painel admin já estava à espera:
+            return {
+                activeUsers: ga4Data.totals.visitors,       // Total de visitantes únicos reais
+                screenPageViews: ga4Data.totals.pageViews,  // Total de visualizações reais
+                topService: "Website Development",          // Mantido fixo ou dinâmico conforme queiras
+                growth: ga4Data.totals.bounceRate > 0 ? `-${ga4Data.totals.bounceRate}% BR` : "0% BR" // Usa o Bounce Rate real para dar contexto
             };
 
-            return mockData;
         } catch (err) {
-            return reply.status(500).send({ error: "Failed to fetch analytics" });
+            app.log.error(err);
+            return reply.status(500).send({ error: "Failed to fetch real analytics data" });
         }
     });
 }

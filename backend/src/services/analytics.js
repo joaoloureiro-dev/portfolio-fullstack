@@ -45,11 +45,16 @@ export async function getGA4Data(period) {
             ],
         });
 
-        // Se a Google não devolver dados nenhumas, entregamos uma estrutura zerada padrão
+        // Se a Google não devolver dados nenhumas (propriedade vazia), entregamos a estrutura padrão limpa
         if (!response.rows || response.rows.length === 0) {
             return {
                 success: true,
-                totals: { pageViews: 0, visitors: 0, avgDuration: 0, bounceRate: 0 },
+                totals: {
+                    pageViews: 0,
+                    visitors: 0,
+                    avgDuration: 0,
+                    bounceRate: 0
+                },
                 chartData: []
             };
         }
