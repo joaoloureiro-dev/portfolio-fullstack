@@ -28,7 +28,7 @@ const Unauthorized = () => {
                     padding: '10px 20px',
                     fontSize: '1rem',
                     cursor: 'pointer',
-                    backgroundColor: '#1890ff',
+                    backgroundColor: '#e66a00',
                     color: 'white',
                     border: 'none',
                     borderRadius: '5px'

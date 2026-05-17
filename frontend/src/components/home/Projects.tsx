@@ -9,7 +9,7 @@ const PROJECTS = [
     },
     {
         title: "Project Two",
-        description: "COMING SOON",
+        description: "Resumo do projecto ou funcionalidade principal",
         tech: ["React", "Tailwind"],
         link: "#"
     }

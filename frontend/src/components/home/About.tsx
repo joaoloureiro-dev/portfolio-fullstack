@@ -14,7 +14,7 @@ export default function About() {
                     <span className="text-(--color-primary) italic"> clean architecture</span>, performance and user-centered design.
                 </p>
                 <p>
-                    Currently, I’m strengthening my skills in <span className="text-white">React,Tailwind, Typescrypt,Node.js and PostgreSQL</span>,
+                    Currently, I’m strengthening my skills in <span className="text-white">React, Tailwind, Typescrypt, Node.js and PostgreSQL</span>,
                     with the goal of building complete end-to-end digital solutions.
                 </p>
             </div>
