@@ -17,7 +17,7 @@ export default function Sidebar() {
         // 🚀 Adicionado 'hidden lg:flex' para não colidir com a Navbar no mobile
         <header className="hidden lg:flex lg:fixed lg:w-1/2 lg:h-screen p-24 flex-col justify-between border-r border-zinc-900/50 bg-(--color-bg) z-20">
             <div>
-                <div className="flex justify-between items-start" ml-40>
+                <div className="flex justify-between items-start">
                     <div>
                         <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter ml-40 italic uppercase leading-none">
                             João<br />Loureiro
