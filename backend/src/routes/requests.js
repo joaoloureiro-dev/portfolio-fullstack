@@ -1,5 +1,5 @@
 import pool from "../db/index.js";
-import { createLog } from "../db/logs.js";
+import { createLog } from "../db/logs.js"; // 🚀 Função de logs já importada e pronta a usar
 import { broadcast } from "../services/socket.js";
 import nodemailer from "nodemailer";
 
@@ -12,15 +12,64 @@ const transporter = nodemailer.createTransport({
 });
 
 export default async function requestsRoutes(app) {
-    // 📩 Criar pedido (Público)
+    // 📩 Criar pedido (Público - Agora protegido por Cloudflare Turnstile)
     app.post("/requests", async (request, reply) => {
-        const { name, email, service, message } = request.body;
+        // 🚀 1. Extrair os dados e o token de segurança do body
+        const { name, email, service, message, token } = request.body;
+
+        // 🛑 Proteção imediata: Se o token não vier no payload, rejeita logo
+        if (!token) {
+            return reply.status(400).send({ error: "Security token is missing." });
+        }
+
         try {
+            // 🔄 2. Validar o token diretamente com os servidores da Cloudflare
+            const cloudflareResponse = await fetch(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        secret: process.env.TURNSTILE_SECRET_KEY, // Validado pelo teu .env do backend
+                        response: token
+                    }).toString()
+                }
+            );
+
+            const verification = await cloudflareResponse.json();
+
+            // 🛑 3. Se a validação falhar (bot ou token expirado), tranca a porta e grava Log
+            if (!verification.success) {
+                app.log.warn(`[Turnstile] Tentativa de spam/bot bloqueada para o email: ${email}`);
+
+                // 📝 Grava o log de segurança (userId fica null porque é uma rota pública)
+                await createLog({
+                    userId: null,
+                    action: "SECURITY_BOT_BLOCKED",
+                    details: `Turnstile bloqueou tentativa de spam. Email informado: ${email}`,
+                    entityType: "requests"
+                });
+
+                return reply.status(403).send({ error: "Security verification failed. Are you a robot?" });
+            }
+
+            app.log.info(`[Turnstile] Verificação concluída com sucesso para o utilizador: ${name}`);
+
+            // 🤖 Utilizador legítimo verificado. Continua com o fluxo existente:
             const result = await pool.query(
                 "INSERT INTO requests (name, email, service, message, status) VALUES ($1, $2, $3, $4, 'pending') RETURNING *",
                 [name, email, service, message]
             );
             const newRequest = result.rows[0];
+
+            // 📝 4. Grava o log de sucesso do novo pedido na base de dados
+            await createLog({
+                userId: null,
+                action: "CREATE_REQUEST",
+                details: `Novo pedido criado por ${name} (${email}) para o serviço: ${service}`,
+                entityType: "requests",
+                entityId: newRequest.id
+            });
 
             transporter.sendMail({
                 from: `"${name}" <${process.env.EMAIL_USER}>`,
@@ -40,6 +89,7 @@ export default async function requestsRoutes(app) {
             broadcast({ type: "NEW_REQUEST", data: newRequest });
             return reply.status(201).send(newRequest);
         } catch (err) {
+            app.log.error("Erro no fluxo do Post Requests / Turnstile:", err);
             return reply.status(500).send({ error: "Erro interno" });
         }
     });
