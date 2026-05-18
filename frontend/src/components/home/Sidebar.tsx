@@ -19,7 +19,7 @@ export default function Sidebar() {
             <div>
                 <div className="flex justify-between items-start">
                     <div>
-                        <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter ml-40 italic uppercase leading-none">
+                        <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter ml-40 italic uppercase leading-none notranslate">
                             João<br />Loureiro
                         </h1>
                         <h2 className="text-(--color-primary) text-lg font-black uppercase tracking-widest mt-4 ml-40 italic">
@@ -35,7 +35,14 @@ export default function Sidebar() {
                             <li key={item.id}>
                                 <a href={`#${item.id}`} className="group flex items-center gap-4 text-zinc-500 hover:text-white transition-all">
                                     <span className="h-px w-8 bg-zinc-800 group-hover:w-16 group-hover:bg-white transition-all"></span>
-                                    <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+
+                                    {/* AQUI ESTÁ A MUDANÇA: */}
+                                    <span
+                                        className={`text-xs font-black uppercase tracking-widest ${item.label === 'Stacks' ? 'notranslate' : ''}`}
+                                        translate={item.label === 'Stacks' ? 'no' : 'yes'}
+                                    >
+                                        {item.label}
+                                    </span>
                                 </a>
                             </li>
                         ))}

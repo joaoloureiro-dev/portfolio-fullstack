@@ -22,3 +22,33 @@ body {
     margin: 0;
     padding: 0;
 }
+
+/* ==========================================================================
+   GOOGLE TRANSLATE CLEANUP
+   ========================================================================== */
+
+/* 1. Esconde a barra de ferramentas superior do Google Translate */
+.goog-te-banner-frame,
+.goog-te-banner,
+.skiptranslate,
+iframe[id*="google_translate"] {
+    display: none !important;
+}
+
+/* 2. Corrige o avanço forçado que o Google aplica no topo da página */
+body {
+    top: 0 !important;
+    position: static !important;
+}
+
+/* 3. Esconde a tooltip/balão que aparece ao passar o rato no texto traduzido */
+#goog-gt-tt,
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+/* 4. Remove o fundo amarelo/azul de destaque que o Google mete no texto alterado */
+.goog-text-highlight {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}

@@ -4,6 +4,7 @@ import Stack from "../components/home/Stack";
 import Projects from "../components/home/Projects";
 import Contact from "../components/home/Contact";
 import { Navbar } from "../components/home/Navbar"; // 🚀 Import da tua Navbar mobile
+import { LanguageSwitcher } from "../components/home/LanguageSwitcher"; // 🌐 Import do seletor automático
 import { useEffect } from "react";
 
 export default function Home() {
@@ -27,12 +28,15 @@ export default function Home() {
 
     return (
         <div className="relative min-h-screen bg-(--color-bg) selection:bg-(--color-primary)/30">
+            {/* 🌐 Botão de Idiomas fixo no canto superior direito por cima de tudo */}
+            <LanguageSwitcher />
+
             {/* Cursor Elements */}
             <div className="cursor hidden lg:block"></div>
             <div className="cursor-glow hidden lg:block"></div>
 
-            {/* 📱 NAVBAR MOBILE (Fixa no topo, aparece apenas abaixo de lg) */}
-            <div className="block lg:hidden fixed top-0 left-0 w-full z-50">
+            {/* 📱 NAVBAR MOBILE (Alterado z-50 para z-40 para o switcher ficar por cima se necessário) */}
+            <div className="block lg:hidden fixed top-0 left-0 w-full z-40">
                 <Navbar />
             </div>
 
@@ -50,7 +54,7 @@ export default function Home() {
                         <About />
                     </section>
 
-                    <section id="stacks">
+                    <section id="stacks" translate="no" className="notranslate">
                         <Stack />
                     </section>
 

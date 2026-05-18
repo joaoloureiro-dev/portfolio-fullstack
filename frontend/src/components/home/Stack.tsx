@@ -10,8 +10,8 @@ export default function Stack() {
 
     return (
         <section id="stack" className="scroll-mt-24">
-            <h2 className="text-xs font-black text-white uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
-                Tech Stack <span className="h-px flex-1 bg-zinc-800"></span>
+            <h2 className="notranslate text-xs font-black text-white uppercase tracking-[0.3em] mb-8 flex items-center gap-4" translate="no">
+                Tech Stack <span className="notranslate h-px flex-1 bg-zinc-800"></span>
             </h2>
             <div className="flex flex-wrap gap-2">
                 {badges.map((badge) => (
