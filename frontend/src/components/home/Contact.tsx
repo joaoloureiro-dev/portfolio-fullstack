@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-// 🚀 1. Importar o Turnstile e a sua tipagem de instância
+// 🚀 Importar o Turnstile e a sua tipagem de instância
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 export default function Contact() {
@@ -60,6 +60,21 @@ export default function Contact() {
 
     return (
         <section id="contact" className="scroll-mt-24 pb-20">
+            {/* 🚀 Widget do Cloudflare Turnstile reposicionado para ficar POR CIMA do Get In Touch */}
+            <div className="flex justify-start mb-6">
+                <Turnstile
+                    ref={turnstileRef}
+                    // 🔑 Substitui pela tua Sitekey gerada no painel da Cloudflare
+                    siteKey="0x4AAAAAADJDr5u815mGOWa0"
+                    options={{
+                        theme: "dark", // Combina com o teu tema escuro
+                    }}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken(null)}
+                    onError={() => setTurnstileToken(null)}
+                />
+            </div>
+
             <h2 className="text-xs font-black text-white uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
                 Get In Touch <span className="h-px flex-1 bg-zinc-800"></span>
             </h2>
@@ -91,22 +106,7 @@ export default function Contact() {
                     </div>
                 </div>
 
-                {/* 🚀 2. Widget do Cloudflare Turnstile */}
-                <div className="flex justify-center pt-2">
-                    <Turnstile
-                        ref={turnstileRef}
-                        // 🔑 Substitui pela tua Sitekey gerada no painel da Cloudflare
-                        siteKey="0x4AAAAAADJDr5u815mGOWa0"
-                        options={{
-                            theme: "dark", // Combina perfeitamente com o teu tema escuro/zinc
-                        }}
-                        onSuccess={(token) => setTurnstileToken(token)}
-                        onExpire={() => setTurnstileToken(null)}
-                        onError={() => setTurnstileToken(null)}
-                    />
-                </div>
-
-                {/* 🚀 3. O botão fica desativado até o Turnstile gerar o token com sucesso */}
+                {/* 🚀 O botão permanece desativado até o Turnstile gerar o token com sucesso no topo */}
                 <button
                     type="submit"
                     disabled={loading || !turnstileToken}
