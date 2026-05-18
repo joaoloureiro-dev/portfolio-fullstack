@@ -5,7 +5,7 @@ import './styles/global.css'
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import App from "./App";
-import "./index.css";
+import "./styles/global.css";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import ReactGA from "react-ga4";

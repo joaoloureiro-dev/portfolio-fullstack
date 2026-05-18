@@ -1,5 +1,16 @@
-/* No Tailwind v4, basta este import para carregar tudo */
+/* ==========================================================================
+   1. IMPORTS (A Google Fonts TEM de vir em primeiro lugar absoluto)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import "tailwindcss";
+
+/* ==========================================================================
+   2. CONFIGURAÇÃO DO TEMA (Tailwind v4)
+   ========================================================================== */
+@theme {
+    /* 🚀 Define a Inter como a fonte sans global */
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
 :root {
     --color-bg: #0f0f0f;
@@ -12,19 +23,26 @@
     --gradient-main: linear-gradient(90deg, #0f0f0f, #ff7b00);
 }
 
-/* O Tailwind v4 deteta estas variáveis automaticamente como utilitários */
-/* Exemplo: podes usar bg-bg-secondary ou text-primary no teu HTML */
-
+/* ==========================================================================
+   3. ESTILOS GLOBAIS DE BASE
+   ========================================================================== */
 html,
 body {
+    /* 🚀 Força a variável da fonte em todo o documento */
+    font-family: var(--font-sans);
+
     background-color: var(--color-bg);
     color: var(--color-text);
     margin: 0;
     padding: 0;
+
+    /* Suavização de renderização de texto */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* ==========================================================================
-   GOOGLE TRANSLATE CLEANUP
+   4. GOOGLE TRANSLATE CLEANUP
    ========================================================================== */
 
 /* 1. Esconde a barra de ferramentas superior do Google Translate */

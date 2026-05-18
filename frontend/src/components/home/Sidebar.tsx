@@ -19,7 +19,7 @@ export default function Sidebar() {
             <div>
                 <div className="flex justify-between items-start">
                     <div>
-                        <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter ml-40 italic uppercase leading-none notranslate">
+                        <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter ml-40 italic uppercase leading-[0.8] notranslate">
                             João<br />Loureiro
                         </h1>
                         <h2 className="text-(--color-primary) text-lg font-black uppercase tracking-widest mt-4 ml-40 italic">
@@ -53,7 +53,7 @@ export default function Sidebar() {
             {/* 🔚 RODAPÉ DA SIDEBAR (Redes Sociais + Botão Admin alinhado abaixo) */}
             <div className="space-y-6">
                 {/* ICONES SOCIAIS */}
-                <div className="relative flex gap-6 pb-40 ml-40 text-2xl text-zinc-500">
+                <div className="relative flex gap-6 pb-60 ml-40 text-2xl text-zinc-500">
                     <a href="https://github.com/joaoloureiro-dev" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                         <i className="fa-brands fa-github"></i>
                     </a>
@@ -66,7 +66,7 @@ export default function Sidebar() {
                 </div>
 
                 {/* 🔒 BOTÃO DE ADMIN - DESKTOP */}
-                <div className="absolute bottom-50 pt-4 ml-40 border-t border-zinc-900/60 w-fit">
+                <div className="absolute bottom-70 pt-4 ml-40 border-t border-zinc-900/60 w-fit">
                     <Link
                         to={token ? "/dashboard" : "/login"}
                         className="flex items-center gap-2 text-zinc-500 hover:text-white text-xs font-black uppercase tracking-widest transition-all group"
