@@ -65,7 +65,7 @@ export default function Contact() {
                 <Turnstile
                     ref={turnstileRef}
                     // 🔑 Substitui pela tua Sitekey gerada no painel da Cloudflare
-                    siteKey="0x4AAAAAADJDr5u815mGOWa0"
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                     options={{
                         theme: "dark", // Combina com o teu tema escuro
                     }}
