@@ -6,7 +6,7 @@ export default function About() {
             </h2>
             <div className="space-y-6 text-zinc-400 font-medium leading-relaxed">
                 <p>
-                    I’m a <span className="text-white font-bold">Junior Fullstack Developer</span> focused on building scalable and performant web applications.
+                    I’m a <span className="text-white font-bold">Fullstack Developer</span> focused on building scalable and performant web applications.
                     I started my journey in 2026, driven by a strong interest in technology and problem-solving.
                 </p>
                 <p>
@@ -14,7 +14,7 @@ export default function About() {
                     <span className="text-(--color-primary) italic"> clean architecture</span>, performance and user-centered design.
                 </p>
                 <p>
-                    Currently, I’m strengthening my skills in <span className="text-white">React, Tailwind, Typescrypt, Node.js and PostgreSQL</span>,
+                    Currently, I’m strengthening my skills in <span className="text-white">React, Tailwind, Typescrypt,Node.js and PostgreSQL</span>,
                     with the goal of building complete end-to-end digital solutions.
                 </p>
             </div>

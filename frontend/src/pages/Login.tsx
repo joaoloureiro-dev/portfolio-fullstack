@@ -57,7 +57,7 @@ export default function Login() {
 
     return (
         <div className="min-h-screen bg-(--color-bg) flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-(--color-bg-secondary) border border-(--color-border) p-10 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div className="w-full max-w-md bg-(--color-bg-secondary) border border-(--color-border) p-6 sm:p-10 rounded-3xl shadow-2xl relative overflow-hidden">
 
                 {/* Decorative Glow */}
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-(--color-primary)/10 blur-[80px]"></div>
@@ -113,19 +113,17 @@ export default function Login() {
                         <div className="h-px flex-1 bg-(--color-border)"></div>
                     </div>
 
-                    {/* CENTERED GOOGLE LOGIN - Full Width Match */}
-                    <div className="flex justify-center w-full pt-2">
-                        <div className="w-full transition-all hover:opacity-90">
+                    {/* 🚀 ALINHAMENTO E LARGURA TOTAL DO GOOGLE LOGIN */}
+                    <div className="w-full flex justify-center pl-10 pt-2">
+                        <div className="w-full max-w-sm flex justify-center [&_iframe]:w-full! [&_iframe]:min-w-full!">
                             <GoogleLogin
                                 onSuccess={handleGoogleLogin}
                                 onError={() => console.log("Google Login Failed")}
                                 theme="filled_black"
                                 shape="pill"
-                                // Using a large fixed width or "container" logic 
-                                // to ensure it fills the max-width of the parent
-                                width="352px"
                                 text="signin_with"
                                 logo_alignment="left"
+                                width="100%"
                             />
                         </div>
                     </div>

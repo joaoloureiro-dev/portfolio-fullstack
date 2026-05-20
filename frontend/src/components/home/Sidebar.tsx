@@ -23,7 +23,7 @@ export default function Sidebar() {
                             João<br />Loureiro
                         </h1>
                         <h2 className="text-(--color-primary) text-lg font-black uppercase tracking-widest mt-4 ml-40 italic">
-                            Junior Fullstack Developer
+                            Fullstack Developer
                         </h2>
                     </div>
                 </div>

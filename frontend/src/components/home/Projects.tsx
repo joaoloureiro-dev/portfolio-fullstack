@@ -2,15 +2,18 @@ import { motion } from "framer-motion";
 
 const PROJECTS = [
     {
-        title: "Project One",
-        description: "Resumo do projeto ou funcionalidade principal.",
-        tech: ["HTML", "CSS", "JS"],
+        title: "Secure Admin & Analytics Dashboard",
+        description: "A private management panel integrated with Fastify and PostgreSQL. Tracks real-time traffic statistics, audits security logs, and manages contact leads.",
+        image: "",
+        tech: ["Node.js", "FASTIFY", "JWT"],
         link: "#"
     },
     {
-        title: "Project Two",
-        description: "Resumo do projecto ou funcionalidade principal",
-        tech: ["React", "Tailwind"],
+        title: "Dev Portfolio & Landing Page",
+        // 🚀 Como está na pasta public, a rota parte do "/" do servidor de forma direta!
+        image: "/og-image.jpg",
+        description: "A high-performance, SEO-optimized trilingual portfolio built with React 19 and Tailwind v4. Features rock-solid layouts protected against automatic translation breaks.",
+        tech: ["React", "TypeScript", "Tailwind v4", "VITE"],
         link: "#"
     }
 ];
@@ -45,7 +48,19 @@ export default function Projects() {
                                 <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                             </motion.a>
                         </div>
+
                         <p className="text-zinc-500 text-sm mt-2 leading-relaxed">{project.description}</p>
+
+                        {project.image && (
+                            <div className="mt-4 overflow-hidden rounded-xl border border-zinc-800/50">
+                                <img
+                                    src={project.image}
+                                    alt={project.title}
+                                    className="w-full h-auto object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                                />
+                            </div>
+                        )}
+
                         <div className="flex gap-3 mt-4">
                             {project.tech.map(t => (
                                 <span key={t} className="text-[10px] font-black text-zinc-600 uppercase tracking-widest group-hover:text-zinc-400 transition-colors">
