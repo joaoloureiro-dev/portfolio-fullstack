@@ -17,7 +17,7 @@
 ## 📷 Project Preview
 
 <div align="center">
-  <img src="./frontend/src/assets/images/og-image.jpg" alt="Portfolio Preview" width="100%" style="border-radius: 10px; border: 1px solid #1f1f1f;" />
+  <img src="./frontend/public/og-image.jpg" alt="Portfolio Preview" width="100%" style="border-radius: 10px; border: 1px solid #1f1f1f;" />
 </div>
 
 ---
