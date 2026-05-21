@@ -1,7 +1,7 @@
 # 🚀 João Loureiro | Professional Portfolio & Admin Dashboard
 
 <div align="center">
-  <img src="./frontend/public/favicon.ico" alt="Logo" width="80" height="80" />
+  <img src="./frontend/public/logo_JL.png" alt="Logo" width="80" height="80" />
   
   <h3>Fullstack Developer Portfolio with Secure Admin Analytics</h3>
   
