@@ -1,41 +1,30 @@
-import pool from "../db/index.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcrypt"; // Mantemos aqui caso queiras usar noutras rotas
 
 export default async function authRoutes(app) {
 
     app.post("/login", async (request, reply) => {
-
         const { username, password } = request.body;
 
-        const result = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
-            [username]
-        );
+        // 1. Puxa as credenciais seguras do ficheiro .env
+        const adminUser = process.env.DASHBOARD_USERNAME;
+        const adminPass = process.env.DASHBOARD_PASSWORD;
 
-        const user = result.rows[0];
+        // 2. Validação direta contra as variáveis de ambiente
+        const isValidUser = username === adminUser;
+        const isValidPass = password === adminPass;
 
-        if (!user) {
+        if (!isValidUser || !isValidPass) {
             return reply.status(401).send({
                 error: "Invalid credentials"
             });
         }
 
-        const valid = await bcrypt.compare(
-            password,
-            user.password_hash
-        );
-
-        if (!valid) {
-            return reply.status(401).send({
-                error: "Invalid credentials"
-            });
-        }
-
-        // ✅ TOKEN COM ROLE
+        // 3. ✅ TOKEN ESPELHADO COM DADOS ESTÁTICOS
+        // Mantemos a estrutura exata que o teu frontend já esperava receber
         const token = app.jwt.sign({
-            id: user.id,
-            username: user.username,
-            role: user.role
+            id: 999, // Um ID fictício já que não vem da BD
+            username: adminUser,
+            role: "admin" // Define o role que o teu frontend precisa para dar acesso
         });
 
         return { token };
