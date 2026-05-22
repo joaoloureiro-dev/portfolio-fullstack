@@ -38,12 +38,28 @@ app.decorate("authenticate", async function (request, reply) {
 // 🌐 CORS
 // --------------------
 await app.register(cors, {
-    origin: "http://localhost:5173",
+    origin: (origin, cb) => {
+        // Permite pedidos sem origem (como Postman ou ferramentas de teste)
+        if (!origin) return cb(null, true);
+
+        // Lista de origens autorizadas (Desenvolvimento + Produção)
+        const allowedOrigins = [
+            "http://localhost:5173",
+            process.env.CORS_ORIGIN
+        ];
+
+        if (allowedOrigins.includes(origin)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Not allowed by CORS"), false);
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 });
 
+// Mantém o hook do Google Auth intacto aqui em baixo:
 app.addHook('onSend', async (request, reply, payload) => {
     reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     return payload;
