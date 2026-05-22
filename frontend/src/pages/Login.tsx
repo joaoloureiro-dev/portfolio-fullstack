@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../contexts/AuthContext";
 
+// 🌐 Define o URL base de forma dinâmica usando a tua variável da Vercel
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export default function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -13,7 +16,8 @@ export default function Login() {
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
         try {
-            const res = await fetch("http://localhost:3000/login", {
+            // ✅ Corrigido: Agora usa o BACKEND_URL dinâmico
+            const res = await fetch(`${BACKEND_URL}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -35,7 +39,8 @@ export default function Login() {
 
     async function handleGoogleLogin(credentialResponse: any) {
         try {
-            const res = await fetch("http://localhost:3000/auth/google", {
+            // ✅ Corrigido: Agora aponta para o Railway em produção
+            const res = await fetch(`${BACKEND_URL}/auth/google`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: credentialResponse.credential }),
