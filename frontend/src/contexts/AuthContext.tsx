@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 type AuthContextType = {
     token: string | null;
     role: string | null;
-    loading: boolean; // Adicionado
+    loading: boolean;
     login: (token: string) => void;
     logout: () => void;
 };
@@ -14,7 +14,7 @@ const AuthContext = createContext<AuthContextType>(null!);
 export function AuthProvider({ children }: any) {
     const [token, setToken] = useState<string | null>(null);
     const [role, setRole] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true); // Começa como true
+    const [loading, setLoading] = useState(true); // Inicializa corretamente a true
 
     // 🔁 RECARREGAR SESSION
     useEffect(() => {
@@ -22,22 +22,25 @@ export function AuthProvider({ children }: any) {
 
         if (saved) {
             try {
-                setToken(saved);
                 const decoded: any = jwtDecode(saved);
-                setRole(decoded.role);
-
-                // Opcional: Verificar se o token já expirou aqui
                 const currentTime = Date.now() / 1000;
+
+                // Verificar se o token expirou
                 if (decoded.exp < currentTime) {
+                    console.warn("⚠️ Token expirado no arranque.");
                     logout();
+                } else {
+                    // Só ativa se o token for 100% válido
+                    setToken(saved);
+                    setRole(decoded.role);
                 }
             } catch (err) {
-                console.error("Invalid token on load");
+                console.error("❌ Token inválido ao carregar a página.");
                 logout();
             }
         }
 
-        // Finaliza o carregamento após verificar o localStorage
+        // ✅ GARANTE que o loading termina sempre, prevenindo ecrãs em branco no mobile
         setLoading(false);
     }, []);
 
@@ -53,7 +56,6 @@ export function AuthProvider({ children }: any) {
         setToken(null);
         setRole(null);
         localStorage.removeItem("token");
-        // Se quiseres podes forçar um redirecionamento aqui: window.location.href = "/";
     }
 
     return (

@@ -5,7 +5,7 @@ const Unauthorized = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Automatically redirect after 5 seconds
+        // Redireciona automaticamente após 5 segundos
         const timer = setTimeout(() => {
             navigate('/');
         }, 5000);
@@ -13,26 +13,29 @@ const Unauthorized = () => {
     }, [navigate]);
 
     return (
-        <div style={{ textAlign: 'center', marginTop: '100px', fontFamily: 'sans-serif' }}>
-            <h1 style={{ fontSize: '3rem', color: '#ff4d4f' }}>Access Denied 🛑</h1>
-            <p style={{ fontSize: '1.2rem' }}>
+        <div className="min-h-screen bg-(--color-bg) flex flex-col items-center justify-center p-4 text-center font-sans select-none">
+
+            {/* Ícone Animado de Alerta */}
+            <div className="text-6xl mb-4 animate-bounce">
+                🛑
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-black text-red-500 tracking-tighter italic uppercase mb-4">
+                Access Denied
+            </h1>
+
+            <p className="text-(--color-text-secondary) max-w-md text-sm md:text-base font-medium mb-2 leading-relaxed">
                 Oops! It looks like you don't have administrator permissions to view this page.
             </p>
-            <p style={{ color: '#666' }}>
+
+            <p className="text-zinc-600 text-xs md:text-sm italic mb-6">
                 You will be redirected to the homepage in 5 seconds...
             </p>
+
             <button
+                type="button"
                 onClick={() => navigate('/')}
-                style={{
-                    marginTop: '20px',
-                    padding: '10px 20px',
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    backgroundColor: '#e66a00',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px'
-                }}
+                className="bg-(--color-primary) hover:bg-(--color-primary-hover) text-white font-black px-6 py-3 rounded-xl shadow-xl shadow-(--color-primary)/20 transition-all transform active:scale-95 uppercase text-xs tracking-widest cursor-pointer"
             >
                 Go Back Now
             </button>

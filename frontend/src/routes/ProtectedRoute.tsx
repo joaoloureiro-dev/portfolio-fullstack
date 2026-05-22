@@ -4,7 +4,7 @@ import { Skeleton } from "../components/Skeleton";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    allowedRoles?: string[]; // Opcional: lista de cargos permitidos (ex: ['admin'])
+    allowedRoles?: string[]; // Ex: ['admin']
 }
 
 export default function ProtectedRoute({
@@ -14,7 +14,7 @@ export default function ProtectedRoute({
     const { token, role, loading } = useAuth();
     const location = useLocation();
 
-    // 1. Enquanto o AuthContext verifica o localStorage/validade do token
+    // 1. Enquanto o AuthContext verifica o localStorage
     if (loading) {
         return (
             <div className="min-h-screen bg-(--color-bg) p-8">
@@ -23,14 +23,19 @@ export default function ProtectedRoute({
         );
     }
 
-    // 2. Se não houver token, redireciona para o login (ou home)
-    // Guardamos a 'location' atual para saber para onde voltar depois
+    // 2. SE NÃO HÁ TOKEN: Manda para o Login (e não para a Home ou Unauthorized)
     if (!token) {
-        return <Navigate to="/" state={{ from: location }} replace />;
+        // Se a pessoa já estiver na rota de login, não redireciona para evitar loop
+        if (location.pathname === "/login") {
+            return <>{children}</>;
+        }
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // 3. Se a rota exigir um cargo específico (ex: admin) e o user não o tiver
-    if (allowedRoles && !allowedRoles.includes(role || "")) {
+    // 3. SE HÁ TOKEN MAS A ROLE É INVÁLIDA: Manda para o Unauthorized
+    // Garantimos que a string da role existe antes de validar
+    const userRole = role || "user";
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
         return <Navigate to="/unauthorized" replace />;
     }
 
