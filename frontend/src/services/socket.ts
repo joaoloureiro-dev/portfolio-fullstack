@@ -1,4 +1,12 @@
-const SOCKET_URL = "ws://localhost:3000/ws";
+// 1. Vai buscar o URL base (Railway em produção ou localhost em desenvolvimento)
+const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+// 2. Transforma o protocolo: Se a API for https://, o WS tem de ser wss://. Se for http://, usa ws://
+const wsProtocol = backendUrl.startsWith("https") ? "wss" : "ws";
+
+// 3. Remove o "http://" ou "https://" do link para construir o URL final do WebSocket
+const cleanUrl = backendUrl.replace(/^https?:\/\//, "");
+const SOCKET_URL = `${wsProtocol}://${cleanUrl}/ws`;
 
 class SocketService {
     private socket: WebSocket | null = null;
