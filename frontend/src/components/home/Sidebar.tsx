@@ -57,10 +57,10 @@ export default function Sidebar() {
                     <a href="https://github.com/joaoloureiro-dev" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                         <i className="fa-brands fa-github"></i>
                     </a>
-                    <a href="https://linkedin.com/in/joaoloureiro" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                    <a href="https://www.linkedin.com/in/jo%C3%A3o-loureiro-8b3637209/" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                         <i className="fa-brands fa-linkedin"></i>
                     </a>
-                    <a href="https://x.com/joaoloureiro" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                    <a href="https://x.com/TUF2840" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                         <i className="fa-brands fa-x-twitter"></i>
                     </a>
                 </div>
