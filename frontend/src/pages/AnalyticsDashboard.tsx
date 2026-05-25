@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+// 1. IMPORTA A FUNÇÃO DO TEU FICHEIRO DE SERVIÇOS
+import { getAnalytics } from "../services/api";
 
-// Tipagem para os dados que vêm do teu backend Fastify
 interface AnalyticsData {
     totals: {
         pageViews: number;
@@ -28,17 +29,14 @@ export default function AnalyticsDashboard() {
         async function fetchAnalytics() {
             setLoading(true);
             try {
-                // Puxa o token de autenticação que guardaste no login do teu dashboard
-                const token = localStorage.getItem("token");
+                // 1. Puxa apenas o token do localStorage
+                const token = localStorage.getItem("token") || "";
 
-                const response = await fetch(`http://localhost:3000/analytics?period=${period}`, {
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
+                // 2. Passa o token E o período atual (estado) para a função
+                const result = await getAnalytics(token, period);
 
-                const result = await response.json();
-                if (result.success) {
+                // 3. Guarda o resultado no estado se ele existir
+                if (result) {
                     setData(result);
                 }
             } catch (error) {
@@ -49,7 +47,7 @@ export default function AnalyticsDashboard() {
         }
 
         fetchAnalytics();
-    }, [period]);
+    }, [period]); // Executa sempre que o período mudar
 
     // Formata os segundos vindos do GA4 para um formato legível (ex: 75s -> 1m 15s)
     const formatDuration = (seconds: number) => {
@@ -61,7 +59,7 @@ export default function AnalyticsDashboard() {
     return (
         <div className="min-h-screen bg-(--color-bg) text-white p-6 md:p-10">
 
-            {/* 🔙 BOTÃO VOLTAR COM MICRO-ANIMAÇÃO */}
+            {/* 🔙 BOTÃO VOLTAR */}
             <button
                 onClick={() => navigate("/dashboard")}
                 className="flex items-center gap-2 text-zinc-500 hover:text-(--color-primary) text-[10px] font-black uppercase tracking-widest mb-6 transition-all cursor-pointer group"
@@ -155,7 +153,7 @@ export default function AnalyticsDashboard() {
                             A carregar métricas reais do Google Analytics...
                         </p>
                     </div>
-                ) : data?.chartData.length === 0 ? (
+                ) : !data || !data.chartData || data.chartData.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center">
                         <p className="text-zinc-600 text-xs font-bold uppercase tracking-widest">
                             Sem dados disponíveis para este período
@@ -164,14 +162,12 @@ export default function AnalyticsDashboard() {
                 ) : (
                     <div className="w-full h-full pt-4">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data?.chartData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                            <AreaChart data={data.chartData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                                 <defs>
-                                    {/* Gradiente roxo para as visualizações baseado no estilo do teu projeto */}
                                     <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="var(--color-primary, #6366f1)" stopOpacity={0.25} />
                                         <stop offset="95%" stopColor="var(--color-primary, #6366f1)" stopOpacity={0} />
                                     </linearGradient>
-                                    {/* Gradiente verde esmeralda para os visitantes únicos */}
                                     <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
                                         <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
@@ -184,9 +180,7 @@ export default function AnalyticsDashboard() {
                                     contentStyle={{ backgroundColor: "#18181b", borderColor: "var(--color-border)", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
                                     labelStyle={{ fontWeight: "bold", color: "#a1a1aa", marginBottom: "4px" }}
                                 />
-                                {/* Área preenchida das Page Views */}
                                 <Area type="monotone" dataKey="pageViews" name="Page Views" stroke="var(--color-primary, #6366f1)" strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" />
-                                {/* Área preenchida dos Visitantes */}
                                 <Area type="monotone" dataKey="visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorVisitors)" />
                             </AreaChart>
                         </ResponsiveContainer>

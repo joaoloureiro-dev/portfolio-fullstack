@@ -67,9 +67,9 @@ export async function updateRequestStatus(id: number, status: string, token: str
     });
 }
 
-// 3. OBTER ANALYTICS
-export async function getAnalytics(token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/analytics`, {
+// 3. OBTER ANALYTICS (Agora aceita o período dinamicamente)
+export async function getAnalytics(token: string, period: "7d" | "30d" | "90d" = "7d") {
+    return authorizedFetch(`${PRIMARY_URL}/analytics?period=${period}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
 }

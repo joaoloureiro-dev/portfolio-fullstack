@@ -1,85 +1,251 @@
-# 🚀 João Loureiro | Professional Portfolio & Admin Dashboard
+# 🚀 João Loureiro | Fullstack Portfolio Platform
 
 <div align="center">
-  <img src="./frontend/public/logo_JL.png" alt="Logo" width="80" height="80" />
-  
-  <h3>Fullstack Developer Portfolio with Secure Admin Analytics</h3>
-  
+  <img src="./frontend/public/logo_JL.png" alt="João Loureiro Logo" width="90" height="90" />
+
+  <h3>Fullstack Developer Portfolio with Secure Analytics Dashboard & Multi-Provider Failover Infrastructure</h3>
+
   <p align="center">
-    <a href="https://vercel.com" target="_blank"><img src="https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" /></a>
-    <a href="https://railway.app" target="_blank"><img src="https://img.shields.io/badge/Backend-Railway-131415?style=for-the-badge&logo=railway&logoColor=white" alt="Railway" /></a>
-    <a href="https://github.com/o-teu-utilizador/o-teu-repositorio/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/badge/License-MIT-05b174?style=for-the-badge" alt="MIT License" /></a>
+    <a href="https://vercel.com" target="_blank">
+      <img src="https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
+    </a>
+    <a href="https://railway.app" target="_blank">
+      <img src="https://img.shields.io/badge/Primary_Backend-Railway-131415?style=for-the-badge&logo=railway&logoColor=white" alt="Railway" />
+    </a>
+    <a href="https://render.com" target="_blank">
+      <img src="https://img.shields.io/badge/Secondary_Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black" alt="Render" />
+    </a>
+    <a href="https://neon.tech" target="_blank">
+      <img src="https://img.shields.io/badge/Database_Backup-Neon-00E699?style=for-the-badge&logo=neon&logoColor=black" alt="Neon" />
+    </a>
+    <a href="https://opensource.org/licenses/MIT" target="_blank">
+      <img src="https://img.shields.io/badge/License-MIT-05b174?style=for-the-badge" alt="MIT License" />
+    </a>
   </p>
 </div>
 
 ---
 
-## 📷 Project Preview
+## 📸 Project Preview
 
 <div align="center">
-  <img src="./frontend/public/og-image.jpg" alt="Portfolio Preview" width="100%" style="border-radius: 10px; border: 1px solid #1f1f1f;" />
+  <img 
+    src="./frontend/public/og-image.jpg" 
+    alt="Portfolio Preview" 
+    width="100%" 
+    style="border-radius:12px; border:1px solid #1f1f1f;"
+  />
 </div>
 
 ---
 
-## 📝 About the Project
+## 📖 About the Project
 
-This project features a high-performance **Custom Portfolio Website** coupled with a secure **Private Administration Panel (Dashboard)** containing real-time analytical metrics.
+This project is a production-oriented **Fullstack Portfolio Platform** designed with a strong focus on scalability, resilience, security, and user experience.
 
-The entire application was designed with a strong focus on **speed, security, and exceptional User Experience (UX)**. The ecosystem is split into a trilingual public Landing Page (PT, EN, ES) shielded against automatic engine translation breaks, and a restricted administrative area where the owner can manage leads, analyze traffic data using Google Analytics 4, and audit security logs.
+The platform combines:
+- A multilingual public portfolio website
+- A protected administrative dashboard
+- Custom analytics aggregation powered by the Google Analytics 4 API
+- Smart backend failover infrastructure across multiple cloud providers
 
----
+Instead of relying exclusively on third-party analytics dashboards, the backend aggregates and processes GA4 data directly into a private administrative workspace, allowing centralized monitoring and visitor insight management.
 
-## 🛠️ Tech Stack
-
-The architecture follows a decoupled structure using modern and reliable technologies:
-
-### **Frontend**
-* **React 19 & TypeScript:** Build-time safety, rigid type definitions, and reactive component lifecycles.
-* **Tailwind CSS v4:** Global advanced styling utilizing the new `@theme` directive mapping and the **Inter** typeface for a corporate *Clean Tech* look.
-* **React Router DOM v6:** Client-side dynamic routing, deep-linking, and role-based route guard restrictions (`ProtectedRoute`).
-* **Cloudflare Turnstile (`@marsidev/react-turnstile`):** Non-intrusive, smart bot challenge protection directly integrated into the contact form.
-* **React GA4:** Native Google Analytics 4 integration tracking dynamic route transitions.
-* **Sonner:** Clean, elegant, non-obtrusive notification toast system.
-
-### **Backend & Database**
-* **Fastify:** Ultra-low latency, blazing-fast HTTP framework built for quick response times and secure route parsing.
-* **PostgreSQL:** Reliable relational database storing structural user inquiries and project requests.
+The architecture emphasizes:
+- Low-latency frontend performance
+- Infrastructure redundancy
+- Secure admin access
+- Responsive multilingual experience (**PT / EN / ES**)
 
 ---
 
-## 🚀 Key Features
+## ✨ Features
 
-<div align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXN6cmRtc2I4NzN0d3VkaWZyeWtzYm9qdnd6M3k4ZnM0NWhid3B3MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7qE1YN7aBOFPRw8E/giphy.gif" alt="Features Slideshow" width="100%" style="border-radius: 10px;" />
-  <p><i>Live feature simulation: Multilingual switching, Turnstile validation, and the Analytics Dashboard.</i></p>
-</div>
-
-1. **Integrated Real-Time Analytics:** Fully configured with Google Analytics 4 (`react-ga4`) to capture user insights, route transitions, and conversion rates seamlessly.
-2. **Break-Proof Layout Translation:** Native integration with the Google Translate Widget assisted by static code markers (`notranslate` / `translate="no"`) preventing layout shifting or technical word mistranslation (*Stacks*, *Legal Text*).
-3. **GDPR Compliance:** Fully compliant trilingual Cookie Consent Banner with state handling and an elegant, modern Privacy Policy Modal linked straight to the footer.
-4. **Military-Grade Form Security:** Submissions are validated through a strict two-step verification layer (Cloudflare Turnstile token validation on the client-side + secure server-side verification hook on Fastify).
-5. **Role-Based Admin Access:** Restricted dashboards (`allowedRoles: ['admin']`) managing user requests, tracking logs, and analytical metrics.
-
----
-
-## 🌐 Deploy and Infrastructure
-
-The production pipelines are designed to maintain **Zero Downtime** and low operational overhead:
-
-* **Frontend (Vercel):** Hosted on Vercel's global Edge Network. Engineered with custom cache invalidation layers and full compression on static assets (`src/assets/images`).
-* **Backend & Database (Railway):** The Fastify environment and the PostgreSQL database cluster run on isolated cloud containers on Railway, safely handling secure environment variables (`TURNSTILE_SECRET_KEY`, `JWT_SECRET`, etc.).
+- 🌍 Trilingual interface (Portuguese, English, Spanish)
+- 🔐 Protected admin authentication system
+- 📊 Google Analytics 4 API integration
+- ⚡ Smart API retry and failover routing
+- ☁️ Multi-provider backend deployment strategy
+- 🛡️ Rate limiting and bot protection mechanisms
+- 📱 Fully responsive UI/UX
+- 🚀 Optimized frontend delivery using Vite + Vercel
+- 📈 Centralized visitor analytics dashboard
 
 ---
 
-## 💻 Local Development Setup
+## 🧰 Tech Stack
 
-### **Prerequisites**
-* Node.js (v18 or higher)
-* NPM / PNPM
-* A running instance of PostgreSQL (local or cloud-hosted)
+### Frontend
+- React
+- TypeScript
+- Vite
+- TailwindCSS
 
-### **1. Clone the Repository**
+### Backend
+- Fastify
+- PostgreSQL
+- JWT Authentication
+
+### Infrastructure & Deployment
+- Vercel
+- Railway
+- Render
+- Neon Database
+
+---
+
+## 🏗️ Architecture Overview
+
+```text
+┌──────────────────────────────┐
+│          Frontend            │
+│   React + TypeScript + Vite  │
+│           (Vercel)           │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│       Smart API Router       │
+│  Retry Logic + Failover      │
+└──────────────┬───────────────┘
+               │
+     ┌─────────┴─────────┐
+     ▼                   ▼
+┌───────────────┐   ┌───────────────┐
+│ Primary API   │   │ Secondary API │
+│   Railway     │   │    Render     │
+│    Fastify    │   │    Fastify    │
+└──────┬────────┘   └──────┬────────┘
+       │                   │
+       ▼                   ▼
+┌───────────────┐   ┌───────────────┐
+│ PostgreSQL    │   │ Neon Postgres │
+│ Primary DB    │   │ Backup DB     │
+└───────────────┘   └───────────────┘
+```
+
+---
+
+## 📦 Installation
+
+Clone the repository:
+
 ```bash
-git clone [https://github.com/o-teu-utilizador/o-teu-repositorio.git](https://github.com/o-teu-utilizador/o-teu-repositorio.git)
-cd o-teu-repositorio
+git clone https://github.com/yourusername/your-repository.git
+cd your-repository
+```
+
+Install dependencies for both frontend and backend:
+
+```bash
+# Frontend
+cd frontend
+npm install
+
+# Backend
+cd ../backend
+npm install
+```
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file inside the backend directory:
+
+```env
+PORT=3000
+
+DATABASE_URL=your_postgres_url
+
+JWT_SECRET=your_jwt_secret
+
+GA4_PROPERTY_ID=your_ga4_property_id
+GA4_CLIENT_EMAIL=your_google_service_email
+GA4_PRIVATE_KEY=your_google_private_key
+```
+
+Frontend `.env` example:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+---
+
+## ▶️ Running Locally
+
+Start the backend server:
+
+```bash
+cd backend
+node src/server.js
+```
+
+Start the frontend application:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Frontend:
+```text
+http://localhost:5173
+```
+
+Backend:
+```text
+http://localhost:3000
+```
+
+---
+
+## 📁 Project Structure
+
+```text
+root/
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   └── vite.config.ts
+│
+├── backend/
+│   ├── src/
+│   ├── routes/
+│   ├── middleware/
+│   └── services/
+│
+└── README.md
+```
+
+---
+
+## 🔒 Security Highlights
+
+- JWT-based authentication
+- Protected admin routes
+- HTTP security headers
+- Request validation
+- Rate limiting middleware
+- Bot protection hooks
+- Environment variable isolation
+
+---
+
+## 🚀 Deployment Strategy
+
+The application uses a multi-provider deployment strategy:
+
+- Frontend hosted on Vercel
+- Primary backend deployed on Railway
+- Secondary failover backend deployed on Render
+- Backup database hosted on Neon
+
+The frontend router automatically retries failed requests and redirects traffic to the secondary backend if the primary service becomes unavailable.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
