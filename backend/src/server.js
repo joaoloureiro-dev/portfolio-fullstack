@@ -9,8 +9,8 @@ import authRoutes from "./routes/auth.js";
 import requestsRoutes from "./routes/requests.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import googleAuthRoutes from "./routes/googleAuth.js";
-import { broadcast, addClient, removeClient } from "./services/socket.js";
 import logsRoutes from "./routes/logs.js";
+import { broadcast, addClient, removeClient } from "./services/socket.js";
 
 const app = Fastify({
     logger: true
@@ -21,48 +21,39 @@ const app = Fastify({
 // --------------------
 await app.register(jwt, {
     secret: process.env.JWT_SECRET,
-    sign: {
-        expiresIn: '1h'
-    }
+    sign: { expiresIn: '1h' }
 });
 
+// Altera a tua decoração authenticate para isto:
 app.decorate("authenticate", async function (request, reply) {
     try {
-        await request.jwtVerify();
+        // Tenta ler do header, ou do query string, ou de um cookie (se usares)
+        const token = request.headers.authorization?.replace("Bearer ", "") || request.query.token;
+
+        if (!token) throw new Error("No token provided");
+
+        // Valida o token manualmente com a chave
+        request.user = app.jwt.verify(token);
     } catch (err) {
-        return reply.status(401).send({ error: "Unauthorized" });
+        return reply.status(401).send({ error: "Unauthorized", details: err.message });
     }
 });
 
 // --------------------
-// 🌐 CORS
+// 🌐 CORS (Configuração robusta)
 // --------------------
+// Substitui a tua configuração de CORS atual por esta:
 await app.register(cors, {
     origin: (origin, cb) => {
-        // Permite pedidos sem origem (como Postman ou ferramentas de teste)
-        if (!origin) return cb(null, true);
-
-        // Lista de origens autorizadas (Desenvolvimento + Produção)
-        const allowedOrigins = [
-            "http://localhost:5173",
-            process.env.CORS_ORIGIN
-        ];
-
-        if (allowedOrigins.includes(origin)) {
-            cb(null, true);
-        } else {
-            cb(new Error("Not allowed by CORS"), false);
-        }
+        // Permite qualquer origem (ou podes definir o teu domínio específico)
+        cb(null, true);
     },
-    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-});
-
-// Mantém o hook do Google Auth intacto aqui em baixo:
-app.addHook('onSend', async (request, reply, payload) => {
-    reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    return payload;
+    allowedHeaders: ["*"], // Permite tudo
+    exposedHeaders: ["Authorization"],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 });
 
 // --------------------
@@ -73,66 +64,48 @@ await app.register(websocket, {
 });
 
 app.get("/ws", { websocket: true }, (connection, req) => {
-    /**
-     * 🛠️ FIX DEFINITIVO:
-     * Em algumas versões do @fastify/websocket, o socket está em connection.socket.
-     * Em outras, o próprio connection é o socket (duplex stream).
-     */
     const socket = connection?.socket || connection;
-
-    // Verificação de segurança: se não tem o método 'on', não é um socket válido
-    if (!socket || typeof socket.on !== 'function') {
-        app.log.error("❌ Erro: Socket não encontrado ou inválido na conexão WebSocket");
-        return;
-    }
+    if (!socket || typeof socket.on !== 'function') return;
 
     addClient(socket);
-    app.log.info("🚀 Cliente conectado ao WebSocket com sucesso");
-
-    socket.on("message", (message) => {
-        app.log.info(`📩 Mensagem recebida: ${message}`);
-    });
-
-    socket.on("close", () => {
-        removeClient(socket);
-        app.log.info("🔌 Cliente desconectado");
-    });
-
-    socket.on("error", (err) => {
-        app.log.error("❌ Erro no Socket:", err.message);
-    });
+    socket.on("close", () => removeClient(socket));
 });
 
 // --------------------
-// 🚀 ROUTES
+// 🚀 ROTAS
 // --------------------
 app.register(authRoutes);
 app.register(requestsRoutes);
 app.register(logsRoutes);
-app.register(dashboardRoutes);
 app.register(googleAuthRoutes);
+app.register(dashboardRoutes);
 
-// --------------------
-// PUBLIC ROUTES
-// --------------------
-app.get("/", async () => {
-    return { status: "ok" };
+app.ready(() => {
+    console.log("ROTAS REGISTADAS:");
+    console.log(app.printRoutes());
 });
 
-app.get("/db-test", async () => {
-    const result = await pool.query("SELECT NOW()");
-    return result.rows;
+// Health Check que garante resposta JSON
+app.get("/", async (request, reply) => {
+    return { status: "ok", timestamp: new Date().toISOString() };
+});
+
+// Handler para rotas inexistentes (previne HTML de erro 404)
+app.setNotFoundHandler((request, reply) => {
+    reply.status(404).type('application/json').send({ error: "Route not found" });
 });
 
 // --------------------
-// START SERVER
+// 🏁 START SERVER
 // --------------------
 const start = async () => {
     try {
+        const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
         await app.listen({
-            port: Number(process.env.PORT) || 3000,
+            port: port,
             host: "0.0.0.0"
         });
+        app.log.info(`Servidor rodando em 0.0.0.0:${port}`);
     } catch (err) {
         app.log.error(err);
         process.exit(1);

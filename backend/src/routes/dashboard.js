@@ -1,117 +1,339 @@
+// routes/dashboard.js
+
 import pool from "../db/index.js";
 import { checkRole } from "../middleware/roles.js";
 import { broadcast } from "../services/socket.js";
-import { getGA4Data } from '../services/analytics.js';
+import { getGA4Data } from "../services/analytics.js";
 
 export default async function dashboardRoutes(app) {
 
-    // Grupo de segurança: Apenas admins autenticados passam daqui
-    const adminAuth = { preHandler: [app.authenticate, checkRole("admin")] };
+    // ============================================
+    // AUTH ADMIN
+    // ============================================
+    const adminAuth = {
+        preHandler: [
+            app.authenticate,
+            checkRole("admin")
+        ]
+    };
 
-    // -----------------------------------------------------------
-    // 1. LISTAR TODOS OS PEDIDOS
-    // -----------------------------------------------------------
-    app.get("/admin/requests", adminAuth, async (req, reply) => {
-        try {
-            const result = await pool.query(
-                "SELECT * FROM requests ORDER BY created_at DESC"
-            );
-            return result.rows;
-        } catch (err) {
-            app.log.error(err);
-            return reply.status(500).send({ error: "Failed to fetch requests from database" });
+    // ============================================
+    // HELPERS
+    // ============================================
+    const allowedPeriods = [
+        "24h",
+        "7d",
+        "30d",
+        "90d"
+    ];
+
+    const emptyAnalyticsData = {
+        success: false,
+
+        totals: {
+            pageViews: 0,
+            visitors: 0,
+            avgDuration: 0,
+            bounceRate: 0
+        },
+
+        chartData: [],
+
+        countries: []
+    };
+
+    // ============================================
+    // 1. LISTAR TODOS OS PEDIDOS ADMIN
+    // ============================================
+    app.get(
+        "/admin/requests",
+        adminAuth,
+        async (request, reply) => {
+
+            try {
+
+                const result = await pool.query(
+                    `
+                    SELECT *
+                    FROM requests
+                    ORDER BY created_at DESC
+                    `
+                );
+
+                return reply.send(
+                    result.rows || []
+                );
+
+            } catch (error) {
+
+                app.log.error(
+                    { err: error },
+                    "Failed to fetch admin requests"
+                );
+
+                return reply.status(500).send({
+                    error: "Failed to fetch requests from database",
+                    details: error.message
+                });
+            }
         }
-    });
+    );
 
-    // -----------------------------------------------------------
-    // 2. OBTER DETALHES DE UM PEDIDO ESPECÍFICO
-    // -----------------------------------------------------------
-    app.get("/admin/requests/:id", adminAuth, async (req, reply) => {
-        const { id } = req.params;
+    // ============================================
+    // 2. OBTER PEDIDO ESPECÍFICO ADMIN
+    // ============================================
+    app.get(
+        "/admin/requests/:id",
+        adminAuth,
+        async (request, reply) => {
 
-        if (isNaN(id)) {
-            return reply.status(400).send({ error: "Invalid request ID" });
-        }
+            const id =
+                Number(request.params.id);
 
-        try {
-            const result = await pool.query(
-                "SELECT * FROM requests WHERE id = $1",
-                [id]
-            );
+            if (
+                !Number.isInteger(id) ||
+                id <= 0
+            ) {
 
-            if (result.rows.length === 0) {
-                return reply.status(404).send({ error: "Request not found" });
+                return reply.status(400).send({
+                    error: "Invalid request ID"
+                });
             }
 
-            return result.rows[0];
-        } catch (err) {
-            app.log.error(err);
-            return reply.status(500).send({ error: "Database error" });
+            try {
+
+                const result = await pool.query(
+                    `
+                    SELECT *
+                    FROM requests
+                    WHERE id = $1
+                    `,
+                    [id]
+                );
+
+                if (result.rowCount === 0) {
+
+                    return reply.status(404).send({
+                        error: "Request not found"
+                    });
+                }
+
+                return reply.send(
+                    result.rows[0]
+                );
+
+            } catch (error) {
+
+                app.log.error(
+                    {
+                        err: error,
+                        requestId: id
+                    },
+                    "Failed to fetch request details"
+                );
+
+                return reply.status(500).send({
+                    error: "Database error",
+                    details: error.message
+                });
+            }
         }
-    });
+    );
 
-    // -----------------------------------------------------------
-    // 3. ATUALIZAR STATUS (Realtime & Validation)
-    // -----------------------------------------------------------
-    app.patch("/admin/requests/:id/status", adminAuth, async (req, reply) => {
-        const { id } = req.params;
-        const { status } = req.body;
+    // ============================================
+    // 3. ATUALIZAR STATUS ADMIN
+    // ============================================
+    app.patch(
+        "/admin/requests/:id/status",
+        adminAuth,
+        async (request, reply) => {
 
-        // Lista rigorosa de estados permitidos
-        const allowedStatuses = ["pending", "in_progress", "done"];
+            const id =
+                Number(request.params.id);
 
-        if (!status || !allowedStatuses.includes(status)) {
-            return reply.status(400).send({
-                error: `Invalid status. Must be one of: ${allowedStatuses.join(", ")}`
-            });
-        }
+            const {
+                status
+            } = request.body || {};
 
-        try {
-            const result = await pool.query(
-                "UPDATE requests SET status = $1 WHERE id = $2 RETURNING *",
-                [status, id]
-            );
+            const allowedStatuses = [
+                "pending",
+                "in_progress",
+                "done"
+            ];
 
-            if (result.rows.length === 0) {
-                return reply.status(404).send({ error: "Request not found" });
+            if (
+                !Number.isInteger(id) ||
+                id <= 0
+            ) {
+
+                return reply.status(400).send({
+                    error: "Invalid request ID"
+                });
             }
 
-            const updatedRequest = result.rows[0];
+            if (
+                !status ||
+                !allowedStatuses.includes(status)
+            ) {
 
-            // 🔥 NOTIFICAÇÃO REALTIME via WebSocket
-            broadcast({
-                type: "REQUEST_UPDATED",
-                payload: updatedRequest
-            });
+                return reply.status(400).send({
+                    error: `Invalid status. Must be one of: ${allowedStatuses.join(", ")}`
+                });
+            }
 
-            return {
-                message: "Status updated successfully",
-                request: updatedRequest
-            };
-        } catch (err) {
-            app.log.error(err);
-            return reply.status(500).send({ error: "Internal server error during update" });
+            try {
+
+                const result = await pool.query(
+                    `
+                    UPDATE requests
+                    SET status = $1
+                    WHERE id = $2
+                    RETURNING *
+                    `,
+                    [
+                        status,
+                        id
+                    ]
+                );
+
+                if (result.rowCount === 0) {
+
+                    return reply.status(404).send({
+                        error: "Request not found"
+                    });
+                }
+
+                const updatedRequest =
+                    result.rows[0];
+
+                broadcast({
+                    type: "REQUEST_UPDATED",
+                    payload: updatedRequest
+                });
+
+                return reply.send({
+                    success: true,
+                    message: "Status updated successfully",
+                    request: updatedRequest
+                });
+
+            } catch (error) {
+
+                app.log.error(
+                    {
+                        err: error,
+                        requestId: id
+                    },
+                    "Failed to update request status"
+                );
+
+                return reply.status(500).send({
+                    error: "Internal server error during update",
+                    details: error.message
+                });
+            }
         }
-    });
-    // -----------------------------------------------------------
-    // 4. ANALYTICS (DADOS REAIS DO GA4)
-    // -----------------------------------------------------------
-    app.get("/admin/analytics", adminAuth, async (req, reply) => {
-        try {
-            // Chamamos o serviço real. Podes passar '30d' como padrão para a visão geral do admin
-            const ga4Data = await getGA4Data('30d');
+    );
 
-            // Mapeamos a resposta real para o formato que o teu painel admin já estava à espera:
-            return {
-                activeUsers: ga4Data.totals.visitors,       // Total de visitantes únicos reais
-                screenPageViews: ga4Data.totals.pageViews,  // Total de visualizações reais
-                topService: "Website Development",          // Mantido fixo ou dinâmico conforme queiras
-                growth: ga4Data.totals.bounceRate > 0 ? `-${ga4Data.totals.bounceRate}% BR` : "0% BR" // Usa o Bounce Rate real para dar contexto
-            };
+    // ============================================
+    // 4. GOOGLE ANALYTICS GA4 ADMIN DASHBOARD
+    // ============================================
+    app.get(
+        "/admin/analytics",
+        adminAuth,
+        async (request, reply) => {
 
-        } catch (err) {
-            app.log.error(err);
-            return reply.status(500).send({ error: "Failed to fetch real analytics data" });
+            const requestedPeriod =
+                String(request.query?.period || "7d");
+
+            const period =
+                allowedPeriods.includes(requestedPeriod)
+                    ? requestedPeriod
+                    : "7d";
+
+            try {
+
+                /*
+                 * Não aplicar fallback silencioso aqui.
+                 * Se o utilizador seleciona 24h, deve ver 24h.
+                 */
+                const ga4Data =
+                    await getGA4Data(period);
+
+                const responseData = {
+                    success:
+                        ga4Data?.success !== false,
+
+                    period,
+
+                    totals: {
+                        pageViews:
+                            Number(ga4Data?.totals?.pageViews) || 0,
+
+                        visitors:
+                            Number(ga4Data?.totals?.visitors) || 0,
+
+                        avgDuration:
+                            Number(ga4Data?.totals?.avgDuration) || 0,
+
+                        bounceRate:
+                            Number(ga4Data?.totals?.bounceRate) || 0
+                    },
+
+                    chartData:
+                        Array.isArray(ga4Data?.chartData)
+                            ? ga4Data.chartData
+                            : [],
+
+                    countries:
+                        Array.isArray(ga4Data?.countries)
+                            ? ga4Data.countries
+                            : []
+                };
+
+                app.log.info(
+                    {
+                        requestedPeriod,
+                        appliedPeriod: period,
+                        chartRows: responseData.chartData.length,
+                        countryRows: responseData.countries.length,
+                        totals: responseData.totals
+                    },
+                    "GA4 analytics response prepared"
+                );
+
+                /*
+                 * Evita respostas antigas durante os testes.
+                 */
+                return reply
+                    .header(
+                        "Cache-Control",
+                        "no-store, no-cache, must-revalidate, proxy-revalidate"
+                    )
+                    .send(responseData);
+
+            } catch (error) {
+
+                app.log.error(
+                    {
+                        err: error,
+                        requestedPeriod,
+                        appliedPeriod: period
+                    },
+                    "Failed to fetch GA4 analytics data"
+                );
+
+                return reply
+                    .header(
+                        "Cache-Control",
+                        "no-store, no-cache, must-revalidate, proxy-revalidate"
+                    )
+                    .status(200)
+                    .send({
+                        ...emptyAnalyticsData,
+                        period
+                    });
+            }
         }
-    });
+    );
 }

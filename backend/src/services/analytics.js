@@ -1,104 +1,389 @@
 // services/analytics.js
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
-export async function getGA4Data(period) {
-    // 1. Define o intervalo de dias com base no filtro que vem da rota
-    let daysAgo = '7';
-    if (period === '30d') daysAgo = '30';
-    if (period === '90d') daysAgo = '90';
+import { BetaAnalyticsDataClient } from "@google-analytics/data";
+
+// ============================================
+// PERIOD
+// ============================================
+function getDateRange(period = "7d") {
+    switch (period) {
+        case "24h":
+            return {
+                startDate: "yesterday",
+                endDate: "today"
+            };
+
+            return {
+                startDate: "3daysAgo",
+                endDate: "today"
+            };
+
+        case "30d":
+            return {
+                startDate: "30daysAgo",
+                endDate: "today"
+            };
+
+        case "90d":
+            return {
+                startDate: "90daysAgo",
+                endDate: "today"
+            };
+
+        case "7d":
+        default:
+            return {
+                startDate: "7daysAgo",
+                endDate: "today"
+            };
+    }
+}
+
+// ============================================
+// EMPTY RESPONSE
+// ============================================
+function createEmptyResponse(success = false) {
+    return {
+        success,
+
+        totals: {
+            pageViews: 0,
+            visitors: 0,
+            avgDuration: 0,
+            bounceRate: 0
+        },
+
+        chartData: [],
+
+        countries: []
+    };
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function toNumber(value) {
+    const parsedValue = Number(value ?? 0);
+
+    return Number.isFinite(parsedValue)
+        ? parsedValue
+        : 0;
+}
+
+function formatDate(rawDate = "") {
+    if (rawDate.length !== 8) {
+        return rawDate;
+    }
+
+    return `${rawDate.substring(6, 8)}/${rawDate.substring(4, 6)}`;
+}
+
+// ============================================
+// GA4 DATA
+// ============================================
+export async function getGA4Data(period = "7d") {
+    const {
+        startDate,
+        endDate
+    } = getDateRange(period);
+
+    // ============================================
+    // ENV - OAuth2 QUE JÁ TINHAS CONFIGURADO
+    // ============================================
+    const clientID =
+        process.env.GOOGLE_CLIENT_ID;
+
+    const clientSecret =
+        process.env.GA_CLIENT_SECRET ||
+        process.env.GOOGLE_CLIENT_SECRET;
+
+    const refreshToken =
+        process.env.GA_REFRESH_TOKEN;
+
+    const propertyId =
+        process.env.GA_PROPERTY_ID;
+
+    console.log("📊 GA4 REQUEST:", {
+        period,
+        startDate,
+        endDate,
+        propertyId,
+        hasClientID: Boolean(clientID),
+        hasClientSecret: Boolean(clientSecret),
+        hasRefreshToken: Boolean(refreshToken)
+    });
+
+    if (
+        !clientID ||
+        !clientSecret ||
+        !refreshToken ||
+        !propertyId
+    ) {
+        console.error("🚨 GA4 CONFIG ERROR:", {
+            missingClientID: !clientID,
+            missingClientSecret: !clientSecret,
+            missingRefreshToken: !refreshToken,
+            missingPropertyId: !propertyId
+        });
+
+        return createEmptyResponse(false);
+    }
 
     try {
-        // 2. Inicialização segura usando o OAuth 2.0 Playground tokens salvos no .env
-        const analyticsDataClient = new BetaAnalyticsDataClient({
-            credentials: {
-                client_id: process.env.GOOGLE_CLIENT_ID,
-                client_secret: process.env.GOOGLE_CLIENT_SECRET,
-                refresh_token: process.env.GA_REFRESH_TOKEN,
-            },
+        // ============================================
+        // CLIENT
+        // ============================================
+        const analyticsDataClient =
+            new BetaAnalyticsDataClient({
+                credentials: {
+                    type: "authorized_user",
+                    client_id: clientID,
+                    client_secret: clientSecret,
+                    refresh_token: refreshToken
+                }
+            });
+
+        console.log("✅ GA4 CLIENT CREATED");
+
+        // ============================================
+        // MAIN REPORT
+        // Query reposta para o formato que já devolveu dados.
+        // ============================================
+        const [response] =
+            await analyticsDataClient.runReport({
+                property: `properties/${propertyId}`,
+
+                dateRanges: [
+                    {
+                        startDate,
+                        endDate
+                    }
+                ],
+
+                dimensions: [
+                    {
+                        name: "date"
+                    }
+                ],
+
+                metrics: [
+                    {
+                        name: "activeUsers"
+                    },
+                    {
+                        name: "screenPageViews"
+                    },
+                    {
+                        name: "averageSessionDuration"
+                    },
+                    {
+                        name: "bounceRate"
+                    }
+                ],
+
+                orderBys: [
+                    {
+                        dimension: {
+                            dimensionName: "date"
+                        },
+
+                        desc: false
+                    }
+                ]
+            });
+
+        const rows =
+            Array.isArray(response?.rows)
+                ? response.rows
+                : [];
+
+        console.log("✅ GA4 MAIN REPORT ROWS:", {
+            period,
+            rows: rows.length
         });
 
-        // 3. Consulta à API do Google Analytics 4
-        const [response] = await analyticsDataClient.runReport({
-            property: `properties/${process.env.GA_PROPERTY_ID}`,
-            dateRanges: [
-                {
-                    startDate: `${daysAgo}daysAgo`,
-                    endDate: 'today',
-                },
-            ],
-            dimensions: [
-                {
-                    name: 'date', // Essencial para agrupar dia a dia para o gráfico
-                },
-            ],
-            metrics: [
-                { name: 'activeUsers' },            // Utilizadores únicos
-                { name: 'screenPageViews' },        // Visualizações de página
-                { name: 'averageSessionDuration' }, // Tempo médio (em segundos)
-                { name: 'bounceRate' },             // Taxa de rejeição (0 a 1)
-            ],
-            orderBys: [
-                {
-                    dimension: { dimensionName: 'date' },
-                    desc: false, // Ordena cronologicamente para a curva do gráfico fazer sentido
-                },
-            ],
-        });
+        if (rows.length === 0) {
+            console.warn("⚠️ GA4 SEM LINHAS PARA O PERÍODO:", {
+                period,
+                startDate,
+                endDate
+            });
 
-        // Se a Google não devolver dados nenhumas (propriedade vazia), entregamos a estrutura padrão limpa
-        if (!response.rows || response.rows.length === 0) {
-            return {
-                success: true,
-                totals: {
-                    pageViews: 0,
-                    visitors: 0,
-                    avgDuration: 0,
-                    bounceRate: 0
-                },
-                chartData: []
-            };
+            /*
+             * A consulta funcionou, mas não devolveu tráfego.
+             */
+            return createEmptyResponse(true);
         }
 
-        // 4. Processar e formatar os dados dia após dia para o Recharts
-        const chartData = response.rows.map((row) => {
-            const rawDate = row.dimensionValues[0].value || '';
-            // Formata "20260517" para "17/05"
-            const formattedDate = `${rawDate.substring(6, 8)}/${rawDate.substring(4, 6)}`;
+        // ============================================
+        // CHART DATA
+        // ============================================
+        const chartData =
+            rows.map((row) => ({
+                date:
+                    formatDate(
+                        row.dimensionValues?.[0]?.value || ""
+                    ),
 
-            return {
-                date: formattedDate,
-                visitors: Number(row.metricValues[0].value ?? 0),
-                pageViews: Number(row.metricValues[1].value ?? 0),
-            };
-        });
+                visitors:
+                    toNumber(
+                        row.metricValues?.[0]?.value
+                    ),
 
-        // 5. Calcular os Totais Absolutos e Médias para preencher os Cards de cima
+                pageViews:
+                    toNumber(
+                        row.metricValues?.[1]?.value
+                    )
+            }));
+
+        // ============================================
+        // TOTALS
+        // Mantido como na versão que apresentava dados.
+        // Depois de estabilizar, afinamos visitors únicos.
+        // ============================================
         let totalPageViews = 0;
         let totalVisitors = 0;
         let sumDuration = 0;
         let sumBounceRate = 0;
-        const totalRows = response.rows.length;
 
-        response.rows.forEach((row) => {
-            totalVisitors += Number(row.metricValues[0].value ?? 0);
-            totalPageViews += Number(row.metricValues[1].value ?? 0);
-            sumDuration += Number(row.metricValues[2].value ?? 0);
-            sumBounceRate += Number(row.metricValues[3].value ?? 0);
+        rows.forEach((row) => {
+            totalVisitors +=
+                toNumber(
+                    row.metricValues?.[0]?.value
+                );
+
+            totalPageViews +=
+                toNumber(
+                    row.metricValues?.[1]?.value
+                );
+
+            sumDuration +=
+                toNumber(
+                    row.metricValues?.[2]?.value
+                );
+
+            sumBounceRate +=
+                toNumber(
+                    row.metricValues?.[3]?.value
+                );
+        });
+
+        const totals = {
+            pageViews:
+                totalPageViews,
+
+            visitors:
+                totalVisitors,
+
+            avgDuration:
+                Math.round(
+                    sumDuration / rows.length
+                ),
+
+            bounceRate:
+                Math.round(
+                    (sumBounceRate / rows.length) * 100
+                )
+        };
+
+        // ============================================
+        // COUNTRY REPORT
+        // Se falhar, o gráfico principal e os cards mantêm-se.
+        // ============================================
+        let countries = [];
+
+        try {
+            const [countryResponse] =
+                await analyticsDataClient.runReport({
+                    property: `properties/${propertyId}`,
+
+                    dateRanges: [
+                        {
+                            startDate,
+                            endDate
+                        }
+                    ],
+
+                    dimensions: [
+                        {
+                            name: "country"
+                        }
+                    ],
+
+                    metrics: [
+                        {
+                            name: "activeUsers"
+                        }
+                    ],
+
+                    orderBys: [
+                        {
+                            metric: {
+                                metricName: "activeUsers"
+                            },
+
+                            desc: true
+                        }
+                    ],
+
+                    limit: 10
+                });
+
+            countries =
+                (countryResponse?.rows || []).map((row) => ({
+                    country:
+                        row.dimensionValues?.[0]?.value ||
+                        "Unknown",
+
+                    visitors:
+                        toNumber(
+                            row.metricValues?.[0]?.value
+                        )
+                }));
+
+            console.log("✅ GA4 COUNTRY REPORT ROWS:", {
+                period,
+                rows: countries.length
+            });
+
+        } catch (countryError) {
+            console.error("⚠️ GA4 COUNTRY REPORT FAILED:", {
+                period,
+                message: countryError?.message,
+                code: countryError?.code,
+                details: countryError?.details
+            });
+
+            countries = [];
+        }
+
+        console.log("✅ GA4 RESPONSE READY:", {
+            period,
+            startDate,
+            endDate,
+            totals,
+            chartRows: chartData.length,
+            countryRows: countries.length
         });
 
         return {
             success: true,
-            totals: {
-                pageViews: totalPageViews,
-                visitors: totalVisitors,
-                avgDuration: Math.round(sumDuration / totalRows), // Média de tempo em segundos
-                bounceRate: Math.round((sumBounceRate / totalRows) * 100), // Percentagem final
-            },
+            totals,
             chartData,
+            countries
         };
 
     } catch (error) {
-        console.error("Erro ao procurar dados no GA4:", error);
-        throw error;
+        console.error("🚨 GA4 MAIN REPORT FAILED:", {
+            period,
+            startDate,
+            endDate,
+            propertyId,
+            message: error?.message,
+            code: error?.code,
+            details: error?.details
+        });
+
+        return createEmptyResponse(false);
     }
 }

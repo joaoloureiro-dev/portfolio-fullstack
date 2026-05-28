@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { socketService } from "../services/socket";
 import { Skeleton } from "./Skeleton";
+// 1. Importa a função autorizada do teu ficheiro central de API
+import { authorizedFetch } from "../services/api";
 
 interface Log {
     id: number;
@@ -16,15 +18,12 @@ export function ActivityLog() {
 
     const fetchLogs = useCallback(async () => {
         try {
-            const response = await fetch("http://localhost:3000/logs", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
+            setIsLoading(true);
 
-            if (!response.ok) throw new Error("Failed to fetch logs");
+            // 2. Deixa o api.ts tratar dos URLs, Failover e validação de HTML de forma 100% segura
+            // Passamos apenas o endpoint desejado. O token é apanhado automaticamente lá dentro!
+            const data = await authorizedFetch("/logs");
 
-            const data = await response.json();
             setLogs(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("🚨 Error loading activity logs:", err);
@@ -37,14 +36,12 @@ export function ActivityLog() {
     useEffect(() => {
         fetchLogs();
 
-        // Guardamos o retorno (que pode ser a função de limpeza ou undefined)
         const unsubscribe = socketService.onMessage((payload) => {
             if (payload.type === "NEW_LOG" || payload.type === "UPDATE_LIST") {
                 fetchLogs();
             }
         });
 
-        // Verificamos se unsubscribe existe antes de invocar (corrige o erro de TS)
         return () => {
             if (typeof unsubscribe === "function") {
                 unsubscribe();
@@ -65,7 +62,6 @@ export function ActivityLog() {
                 <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Live Stream</span>
             </header>
 
-            {/* max-h-150 substitui o valor fixo em px */}
             <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-150">
                 {isLoading ? (
                     [...Array(5)].map((_, i) => (

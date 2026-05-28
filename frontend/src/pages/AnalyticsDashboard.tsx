@@ -1,9 +1,23 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-// 1. IMPORTA A FUNÇÃO DO TEU FICHEIRO DE SERVIÇOS
+
+import {
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    BarChart,
+    Bar
+} from "recharts";
+
 import { getAnalytics } from "../services/api";
+
+type Period = "24h" | "7d" | "30d" | "90d";
 
 interface AnalyticsData {
     totals: {
@@ -12,182 +26,497 @@ interface AnalyticsData {
         avgDuration: number;
         bounceRate: number;
     };
+
     chartData: Array<{
         date: string;
         visitors: number;
         pageViews: number;
     }>;
+
+    countries: Array<{
+        country: string;
+        visitors: number;
+    }>;
 }
 
+const emptyAnalyticsData: AnalyticsData = {
+    totals: {
+        pageViews: 0,
+        visitors: 0,
+        avgDuration: 0,
+        bounceRate: 0
+    },
+    chartData: [],
+    countries: []
+};
+
 export default function AnalyticsDashboard() {
-    const [period, setPeriod] = useState<"7d" | "30d" | "90d">("7d");
-    const [data, setData] = useState<AnalyticsData | null>(null);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const {
+        token,
+        loading: authLoading,
+        logout
+    } = useAuth();
+
+    const [period, setPeriod] =
+        useState<Period>("7d");
+
+    const [data, setData] =
+        useState<AnalyticsData>(emptyAnalyticsData);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const fetchIdRef =
+        useRef(0);
+
     useEffect(() => {
+        if (authLoading) {
+            return;
+        }
+
+        if (!token) {
+            setLoading(false);
+            return;
+        }
+
+        const controller =
+            new AbortController();
+
+        const currentFetchId =
+            ++fetchIdRef.current;
+
         async function fetchAnalytics() {
             setLoading(true);
+
             try {
-                // 1. Puxa apenas o token do localStorage
-                const token = localStorage.getItem("token") || "";
+                console.log("📊 Fetch GA4 Analytics:", period);
 
-                // 2. Passa o token E o período atual (estado) para a função
-                const result = await getAnalytics(token, period);
+                const result = await getAnalytics(
+                    period,
+                    controller.signal
+                );
 
-                // 3. Guarda o resultado no estado se ele existir
-                if (result) {
-                    setData(result);
+                if (currentFetchId !== fetchIdRef.current) {
+                    return;
                 }
-            } catch (error) {
-                console.error("Erro ao carregar dados do Analytics:", error);
+
+                console.log("📊 GA4 Response:", result);
+
+                const normalizedData: AnalyticsData = {
+                    totals: {
+                        pageViews:
+                            Number(result?.totals?.pageViews) || 0,
+
+                        visitors:
+                            Number(result?.totals?.visitors) || 0,
+
+                        avgDuration:
+                            Number(result?.totals?.avgDuration) || 0,
+
+                        bounceRate:
+                            Number(result?.totals?.bounceRate) || 0
+                    },
+
+                    chartData:
+                        Array.isArray(result?.chartData)
+                            ? result.chartData
+                            : [],
+
+                    countries:
+                        Array.isArray(result?.countries)
+                            ? result.countries
+                            : []
+                };
+
+                setData(normalizedData);
+
+            } catch (error: any) {
+                if (error?.name === "AbortError") {
+                    return;
+                }
+
+                if (error?.message === "UNAUTHORIZED") {
+                    console.warn("⚠️ Sessão expirada.");
+
+                    logout();
+                    navigate("/login");
+
+                    return;
+                }
+
+                console.error("❌ Erro Analytics:", error);
+
+                setData(emptyAnalyticsData);
+
             } finally {
-                setLoading(false);
+                if (currentFetchId === fetchIdRef.current) {
+                    setLoading(false);
+                }
             }
         }
 
         fetchAnalytics();
-    }, [period]); // Executa sempre que o período mudar
 
-    // Formata os segundos vindos do GA4 para um formato legível (ex: 75s -> 1m 15s)
-    const formatDuration = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
+        return () => {
+            controller.abort();
+        };
+
+    }, [
+        period,
+        token,
+        authLoading,
+        logout,
+        navigate
+    ]);
+
+    function formatDuration(seconds: number) {
+        const safeSeconds =
+            Math.max(0, Math.round(seconds));
+
+        const mins =
+            Math.floor(safeSeconds / 60);
+
+        const secs =
+            safeSeconds % 60;
+
         return `${mins}m ${secs < 10 ? "0" : ""}${secs}s`;
-    };
+    }
 
     return (
         <div className="min-h-screen bg-(--color-bg) text-white p-6 md:p-10">
 
-            {/* 🔙 BOTÃO VOLTAR */}
+            {/* BACK */}
             <button
                 onClick={() => navigate("/dashboard")}
                 className="flex items-center gap-2 text-zinc-500 hover:text-(--color-primary) text-[10px] font-black uppercase tracking-widest mb-6 transition-all cursor-pointer group"
             >
-                <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+                <ArrowLeft
+                    size={14}
+                    className="transition-transform group-hover:-translate-x-1"
+                />
+
                 Back to Dashboard
             </button>
 
-            {/* HEADER DA PÁGINA */}
+            {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10 border-b border-(--color-border) pb-6">
+
                 <div>
                     <h1 className="text-3xl font-black tracking-tighter uppercase italic">
-                        Google Analytics<span className="text-(--color-primary)">.</span>
+                        Google Analytics
+                        <span className="text-(--color-primary)">.</span>
                     </h1>
+
                     <p className="text-zinc-500 text-xs font-medium uppercase tracking-wider mt-1">
-                        Real-time monitoring of traffic and user behavior
+                        Traffic and user behavior monitoring
                     </p>
                 </div>
 
-                {/* FILTRO DE PERÍODO */}
-                <div className="flex bg-(--color-bg-secondary) border border-(--color-border) p-1 rounded-xl">
-                    {(["7d", "30d", "90d"] as const).map((t) => (
+                {/* PERIODS */}
+                <div className="flex bg-(--color-bg-secondary) border border-(--color-border) p-1 rounded-xl overflow-x-auto">
+                    {(["24h", "7d", "30d", "90d"] as const).map((item) => (
                         <button
-                            key={t}
-                            onClick={() => setPeriod(t)}
-                            className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${period === t
+                            key={item}
+                            onClick={() => setPeriod(item)}
+                            className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer whitespace-nowrap ${period === item
                                 ? "bg-(--color-primary) text-white"
                                 : "text-zinc-500 hover:text-white"
                                 }`}
                         >
-                            {t === "7d" ? "7 Days" : t === "30d" ? "30 Days" : "90 Days"}
+                            {item === "24h"
+                                ? "24 Hours"
+                                : item === "7d"
+                                    ? "7 Days"
+                                    : item === "30d"
+                                        ? "30 Days"
+                                        : "90 Days"}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* 📊 GRID DE CARDS PRINCIPAIS */}
+            {/* STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full">
 
-                {/* CARD 1: Visualizações */}
-                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between min-h-32">
-                    <div>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Page Views</p>
-                        <h3 className="text-3xl font-black mt-2 tracking-tight">
-                            {loading ? "--" : (data?.totals?.pageViews ?? 0).toLocaleString()}
-                        </h3>
-                    </div>
-                    <span className="text-zinc-500 text-[10px] font-bold mt-2 inline-block">Total do período</span>
+                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl">
+                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                        Page Views
+                    </p>
+
+                    <h3 className="text-3xl font-black mt-2 tracking-tight">
+                        {loading
+                            ? "--"
+                            : data.totals.pageViews.toLocaleString()}
+                    </h3>
                 </div>
 
-                {/* CARD 2: Utilizadores Únicos */}
-                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between min-h-32">
-                    <div>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Unique Visitors</p>
-                        <h3 className="text-3xl font-black mt-2 tracking-tight">
-                            {loading ? "--" : (data?.totals?.visitors ?? 0).toLocaleString()}
-                        </h3>
-                    </div>
-                    <span className="text-emerald-500 text-[10px] font-bold mt-2 inline-block">Dados em tempo real</span>
+                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl">
+                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                        Unique Visitors
+                    </p>
+
+                    <h3 className="text-3xl font-black mt-2 tracking-tight">
+                        {loading
+                            ? "--"
+                            : data.totals.visitors.toLocaleString()}
+                    </h3>
                 </div>
 
-                {/* CARD 3: Tempo Médio */}
-                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between min-h-32">
-                    <div>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Avg. Engagement Time</p>
-                        <h3 className="text-3xl font-black mt-2 tracking-tight">
-                            {loading ? "--s" : formatDuration(data?.totals?.avgDuration || 0)}
-                        </h3>
-                    </div>
-                    <span className="text-zinc-500 text-[10px] font-bold mt-2 inline-block">Média por sessão</span>
+                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl">
+                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                        Avg. Engagement Time
+                    </p>
+
+                    <h3 className="text-3xl font-black mt-2 tracking-tight">
+                        {loading
+                            ? "--"
+                            : formatDuration(data.totals.avgDuration)}
+                    </h3>
                 </div>
 
-                {/* CARD 4: Bounce Rate */}
-                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between min-h-32">
-                    <div>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Bounce Rate</p>
-                        <h3 className="text-3xl font-black mt-2 tracking-tight">
-                            {loading ? "--%" : `${data?.totals?.bounceRate ?? 0}%`}
-                        </h3>
-                    </div>
-                    <span className="text-zinc-500 text-[10px] font-bold mt-2 inline-block">Taxa de rejeição</span>
-                </div>
+                <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-2xl">
+                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                        Bounce Rate
+                    </p>
 
+                    <h3 className="text-3xl font-black mt-2 tracking-tight">
+                        {loading
+                            ? "--"
+                            : `${data.totals.bounceRate}%`}
+                    </h3>
+                </div>
             </div>
 
-            {/* 📈 ÁREA DO GRÁFICO PRINCIPAL */}
-            <div className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-3xl h-[100] flex flex-col justify-between">
-                {loading ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest animate-pulse">
-                            A carregar métricas reais do Google Analytics...
-                        </p>
-                    </div>
-                ) : !data || !data.chartData || data.chartData.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <p className="text-zinc-600 text-xs font-bold uppercase tracking-widest">
-                            Sem dados disponíveis para este período
-                        </p>
-                    </div>
-                ) : (
-                    <div className="w-full h-full pt-4">
+            {/* MAIN TRAFFIC CHART */}
+            <section className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-3xl min-w-0">
+
+                <div className="mb-6">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">
+                        Traffic Overview
+                    </h2>
+
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mt-1">
+                        Page views and visitors over time
+                    </p>
+                </div>
+
+                <div className="w-full h-[75] min-h-[75] min-w-0">
+                    {loading ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest animate-pulse">
+                                Loading Analytics...
+                            </p>
+                        </div>
+                    ) : data.chartData.length === 0 ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <p className="text-zinc-600 text-xs font-bold uppercase tracking-widest">
+                                No data available
+                            </p>
+                        </div>
+                    ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data.chartData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                            <AreaChart
+                                data={data.chartData}
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: -20,
+                                    bottom: 0
+                                }}
+                            >
                                 <defs>
-                                    <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--color-primary, #6366f1)" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="var(--color-primary, #6366f1)" stopOpacity={0} />
+                                    <linearGradient
+                                        id="colorViews"
+                                        x1="0"
+                                        y1="0"
+                                        x2="0"
+                                        y2="1"
+                                    >
+                                        <stop
+                                            offset="5%"
+                                            stopColor="var(--color-primary)"
+                                            stopOpacity={0.25}
+                                        />
+
+                                        <stop
+                                            offset="95%"
+                                            stopColor="var(--color-primary)"
+                                            stopOpacity={0}
+                                        />
                                     </linearGradient>
-                                    <linearGradient id="colorVisitors" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+
+                                    <linearGradient
+                                        id="colorVisitors"
+                                        x1="0"
+                                        y1="0"
+                                        x2="0"
+                                        y2="1"
+                                    >
+                                        <stop
+                                            offset="5%"
+                                            stopColor="#22c55e"
+                                            stopOpacity={0.2}
+                                        />
+
+                                        <stop
+                                            offset="95%"
+                                            stopColor="#22c55e"
+                                            stopOpacity={0}
+                                        />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} dy={10} />
-                                <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} dx={5} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: "#18181b", borderColor: "var(--color-border)", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
-                                    labelStyle={{ fontWeight: "bold", color: "#a1a1aa", marginBottom: "4px" }}
+
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke="#27272a"
+                                    vertical={false}
                                 />
-                                <Area type="monotone" dataKey="pageViews" name="Page Views" stroke="var(--color-primary, #6366f1)" strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" />
-                                <Area type="monotone" dataKey="visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorVisitors)" />
+
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#71717a"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+
+                                <YAxis
+                                    stroke="#71717a"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: "#09090b",
+                                        border: "1px solid #27272a",
+                                        borderRadius: "12px",
+                                        color: "#ffffff",
+                                        fontSize: "12px"
+                                    }}
+                                    labelStyle={{
+                                        color: "#a1a1aa",
+                                        fontWeight: 700
+                                    }}
+                                />
+
+                                <Area
+                                    type="monotone"
+                                    dataKey="pageViews"
+                                    name="Page Views"
+                                    stroke="var(--color-primary)"
+                                    fill="url(#colorViews)"
+                                    strokeWidth={2}
+                                />
+
+                                <Area
+                                    type="monotone"
+                                    dataKey="visitors"
+                                    name="Visitors"
+                                    stroke="#22c55e"
+                                    fill="url(#colorVisitors)"
+                                    strokeWidth={2}
+                                />
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            </section>
 
+            {/* COUNTRIES */}
+            <section className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-3xl mt-8 min-w-0">
+
+                <div className="mb-6">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">
+                        Top Countries
+                    </h2>
+
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mt-1">
+                        Visitors by country
+                    </p>
+                </div>
+
+                <div className="w-full h-[90] min-h-[90] min-w-0">
+                    {loading ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest animate-pulse">
+                                Loading Countries...
+                            </p>
+                        </div>
+                    ) : data.countries.length === 0 ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <p className="text-zinc-600 text-xs font-bold uppercase tracking-widest">
+                                No country data
+                            </p>
+                        </div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={data.countries}
+                                layout="vertical"
+                                margin={{
+                                    top: 0,
+                                    right: 20,
+                                    left: 20,
+                                    bottom: 0
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke="#27272a"
+                                    horizontal={false}
+                                    vertical={true}
+                                />
+
+                                <XAxis
+                                    type="number"
+                                    stroke="#71717a"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    allowDecimals={false}
+                                />
+
+                                <YAxis
+                                    type="category"
+                                    dataKey="country"
+                                    stroke="#71717a"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={110}
+                                />
+
+                                <Tooltip
+                                    cursor={{
+                                        fill: "#27272a",
+                                        opacity: 0.25
+                                    }}
+                                    contentStyle={{
+                                        backgroundColor: "#09090b",
+                                        border: "1px solid #27272a",
+                                        borderRadius: "12px",
+                                        color: "#ffffff",
+                                        fontSize: "12px"
+                                    }}
+                                />
+
+                                <Bar
+                                    dataKey="visitors"
+                                    name="Visitors"
+                                    fill="var(--color-primary)"
+                                    radius={[0, 8, 8, 0]}
+                                    barSize={20}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+            </section>
         </div>
     );
 }

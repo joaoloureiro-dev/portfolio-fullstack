@@ -1,53 +1,174 @@
-// 1. Vai buscar o URL base (Railway em produção ou localhost em desenvolvimento)
-const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// ================================
+// BACKENDS
+// ================================
+const PRIMARY_URL =
+    import.meta.env.VITE_API_URL_PRIMARY ||
+    "https://portfolio-fullstack-production-729a.up.railway.app";
 
-// 2. Transforma o protocolo: Se a API for https://, o WS tem de ser wss://. Se for http://, usa ws://
-const wsProtocol = backendUrl.startsWith("https") ? "wss" : "ws";
+const BACKUP_URL =
+    import.meta.env.VITE_API_URL_BACKUP ||
+    "https://portfolio-fullstack-xdwl.onrender.com";
 
-// 3. Remove o "http://" ou "https://" do link para construir o URL final do WebSocket
-const cleanUrl = backendUrl.replace(/^https?:\/\//, "");
-const SOCKET_URL = `${wsProtocol}://${cleanUrl}/ws`;
+// backend ativo
+let activeBackend: "railway" | "render" =
+    "railway";
 
+// ================================
+// BUILD WS URL
+// ================================
+function buildSocketUrl(url: string) {
+
+    const protocol =
+        url.startsWith("https")
+            ? "wss"
+            : "ws";
+
+    const cleanUrl =
+        url.replace(/^https?:\/\//, "");
+
+    return `${protocol}://${cleanUrl}/ws`;
+}
+
+// ================================
+// SOCKET SERVICE
+// ================================
 class SocketService {
+
     private socket: WebSocket | null = null;
-    private listeners: ((data: any) => void)[] = [];
+
+    private listeners:
+        ((data: any) => void)[] = [];
 
     constructor() {
+
         if (typeof window !== "undefined") {
             this.connect();
         }
     }
 
     private connect() {
-        // Se já estiver aberto ou a conectar, não faz nada
-        if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) return;
 
-        this.socket = new WebSocket(SOCKET_URL);
+        // evita múltiplas conexões
+        if (
+            this.socket?.readyState === WebSocket.OPEN ||
+            this.socket?.readyState === WebSocket.CONNECTING
+        ) {
+            return;
+        }
 
-        this.socket.onopen = () => console.log("⚡ [WebSocket] Conectado");
+        // escolhe backend ativo
+        const backendUrl =
+            activeBackend === "railway"
+                ? PRIMARY_URL
+                : BACKUP_URL;
 
+        const socketUrl =
+            buildSocketUrl(backendUrl);
+
+        console.log(
+            "🔌 WS CONNECT:",
+            socketUrl
+        );
+
+        this.socket =
+            new WebSocket(socketUrl);
+
+        // ================================
+        // OPEN
+        // ================================
+        this.socket.onopen = () => {
+
+            console.log(
+                `⚡ [WebSocket] Conectado (${activeBackend})`
+            );
+        };
+
+        // ================================
+        // MESSAGE
+        // ================================
         this.socket.onmessage = (event) => {
+
             try {
-                const data = JSON.parse(event.data);
-                this.listeners.forEach(cb => cb(data));
-            } catch (e) {
-                this.listeners.forEach(cb => cb(event.data));
+
+                const data =
+                    JSON.parse(event.data);
+
+                this.listeners.forEach(
+                    cb => cb(data)
+                );
+
+            } catch {
+
+                this.listeners.forEach(
+                    cb => cb(event.data)
+                );
             }
         };
 
+        // ================================
+        // ERROR
+        // ================================
+        this.socket.onerror = (err) => {
+
+            console.error(
+                "❌ [WebSocket] Erro:",
+                err
+            );
+        };
+
+        // ================================
+        // CLOSE + FAILOVER
+        // ================================
         this.socket.onclose = () => {
-            console.warn("🔄 [WebSocket] Fechado. Tentando reconectar...");
-            setTimeout(() => this.connect(), 3000);
+
+            console.warn(
+                `🔄 [WebSocket] Fechado (${activeBackend})`
+            );
+
+            // FAILOVER
+            if (activeBackend === "railway") {
+
+                console.log(
+                    "🟠 WS FAILOVER -> Render"
+                );
+
+                activeBackend = "render";
+
+            } else {
+
+                console.log(
+                    "🟢 WS FAILOVER -> Railway"
+                );
+
+                activeBackend = "railway";
+            }
+
+            // reconnect
+            setTimeout(() => {
+                this.connect();
+            }, 3000);
         };
     }
 
-    public onMessage(callback: (data: any) => void) {
+    // ================================
+    // LISTENERS
+    // ================================
+    public onMessage(
+        callback: (data: any) => void
+    ) {
+
         this.listeners.push(callback);
+
         return () => {
-            this.listeners = this.listeners.filter(cb => cb !== callback);
+
+            this.listeners =
+                this.listeners.filter(
+                    cb => cb !== callback
+                );
         };
     }
 }
 
-// GARANTE O SINGLETON: Exporta apenas uma instância
-export const socketService = new SocketService();
+// singleton
+export const socketService =
+    new SocketService();

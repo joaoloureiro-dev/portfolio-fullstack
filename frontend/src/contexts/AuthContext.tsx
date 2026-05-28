@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+    createContext,
+    useContext,
+    useState,
+    useEffect
+} from "react";
+
 import { jwtDecode } from "jwt-decode";
 
 type AuthContextType = {
@@ -9,60 +15,158 @@ type AuthContextType = {
     logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType>(null!);
+const AuthContext =
+    createContext<AuthContextType>(null!);
 
-export function AuthProvider({ children }: any) {
-    const [token, setToken] = useState<string | null>(null);
-    const [role, setRole] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true); // Inicializa corretamente a true
+export function AuthProvider({
+    children
+}: {
+    children: React.ReactNode;
+}) {
 
-    // 🔁 RECARREGAR SESSION
+    const [token, setToken] =
+        useState<string | null>(null);
+
+    const [role, setRole] =
+        useState<string | null>(null);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    // ========================================
+    // INIT AUTH
+    // ========================================
     useEffect(() => {
-        const saved = localStorage.getItem("token");
 
-        if (saved) {
-            try {
-                const decoded: any = jwtDecode(saved);
-                const currentTime = Date.now() / 1000;
+        try {
 
-                // Verificar se o token expirou
-                if (decoded.exp < currentTime) {
-                    console.warn("⚠️ Token expirado no arranque.");
-                    logout();
-                } else {
-                    // Só ativa se o token for 100% válido
-                    setToken(saved);
-                    setRole(decoded.role);
-                }
-            } catch (err) {
-                console.error("❌ Token inválido ao carregar a página.");
-                logout();
+            const saved =
+                localStorage.getItem("token");
+
+            if (!saved) {
+
+                setLoading(false);
+
+                return;
             }
+
+            const decoded: any =
+                jwtDecode(saved);
+
+            const currentTime =
+                Date.now() / 1000;
+
+            // token expirado
+            if (
+                decoded.exp &&
+                decoded.exp < currentTime
+            ) {
+
+                console.warn(
+                    "⚠️ Token expirado."
+                );
+
+                localStorage.removeItem("token");
+
+                setToken(null);
+
+                setRole(null);
+
+                setLoading(false);
+
+                return;
+            }
+
+            setToken(saved);
+
+            setRole(decoded.role || null);
+
+        } catch (err) {
+
+            console.error(
+                "❌ Erro Auth:",
+                err
+            );
+
+            localStorage.removeItem("token");
+
+            setToken(null);
+
+            setRole(null);
+
+        } finally {
+
+            setLoading(false);
         }
 
-        // ✅ GARANTE que o loading termina sempre, prevenindo ecrãs em branco no mobile
-        setLoading(false);
     }, []);
 
+    // ========================================
+    // LOGIN
+    // ========================================
     function login(token: string) {
-        setToken(token);
-        localStorage.setItem("token", token);
 
-        const decoded: any = jwtDecode(token);
-        setRole(decoded.role);
+        try {
+
+            const decoded: any =
+                jwtDecode(token);
+
+            localStorage.setItem(
+                "token",
+                token
+            );
+
+            setToken(token);
+
+            setRole(decoded.role || null);
+
+        } catch (err) {
+
+            console.error(
+                "❌ Login Error:",
+                err
+            );
+        }
     }
 
+    // ========================================
+    // LOGOUT
+    // ========================================
     function logout() {
-        setToken(null);
-        setRole(null);
+
         localStorage.removeItem("token");
+
+        setToken(null);
+
+        setRole(null);
     }
 
     return (
-        <AuthContext.Provider value={{ token, role, loading, login, logout }}>
+        <AuthContext.Provider
+            value={{
+                token,
+                role,
+                loading,
+                login,
+                logout
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+
+    const context =
+        useContext(AuthContext);
+
+    if (!context) {
+
+        throw new Error(
+            "useAuth must be used within AuthProvider"
+        );
+    }
+
+    return context;
+};

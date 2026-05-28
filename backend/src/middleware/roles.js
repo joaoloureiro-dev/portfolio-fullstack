@@ -5,6 +5,8 @@ export function checkRole(role) {
         // 1. O app.authenticate já correu antes, por isso o request.user já existe
         // 2. Verificamos se a role no token é a que a rota exige (ex: 'admin')
 
+        console.log("🔍 Verificando role:", request.user?.role);
+
         if (!request.user) {
             return reply.status(401).send({
                 error: "Unauthorized",

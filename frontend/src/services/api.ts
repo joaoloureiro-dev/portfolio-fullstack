@@ -1,102 +1,263 @@
-// Definimos os dois URLs usando as variáveis de ambiente
-const PRIMARY_URL = import.meta.env.VITE_API_URL_PRIMARY || import.meta.env.VITE_API_URL || "http://localhost:3000";
-const BACKUP_URL = import.meta.env.VITE_API_URL_BACKUP || "https://portfolio-fullstack-xdwl.onrender.com";
+// src/services/api.ts
 
-async function authorizedFetch(url: string, options: RequestInit = {}, isRetry = false): Promise<any> {
+// ================================
+// BACKEND URLS
+// ================================
+const PRIMARY_URL =
+    import.meta.env.VITE_API_URL_PRIMARY ||
+    "https://portfolio-fullstack-production-729a.up.railway.app";
+
+const BACKUP_URL =
+    import.meta.env.VITE_API_URL_BACKUP ||
+    "https://portfolio-fullstack-xdwl.onrender.com";
+
+// ================================
+// BACKEND STATE
+// ================================
+let activeBackend: "railway" | "render" = "railway";
+let lastFailover = 0;
+
+const FAILOVER_RECOVERY_TIME = 60_000;
+
+// ================================
+// CUSTOM ERROR
+// ================================
+class ApiError extends Error {
+    status?: number;
+    body?: unknown;
+
+    constructor(message: string, status?: number, body?: unknown) {
+        super(message);
+        this.name = "ApiError";
+        this.status = status;
+        this.body = body;
+    }
+}
+
+// ================================
+// HELPERS
+// ================================
+function getMethod(options: RequestInit): string {
+    return (options.method || "GET").toUpperCase();
+}
+
+function isReadOnlyRequest(options: RequestInit): boolean {
+    return getMethod(options) === "GET";
+}
+
+function canFailover(error: unknown, options: RequestInit): boolean {
+    if (!isReadOnlyRequest(options)) {
+        return false;
+    }
+
+    if (error instanceof ApiError) {
+        return !!error.status && error.status >= 500;
+    }
+
+    return true;
+}
+
+async function parseResponseBody(response: Response): Promise<any> {
+    const text = await response.text();
+
+    if (!text) {
+        return null;
+    }
+
     try {
-        const res = await fetch(url, {
-            ...options,
-            headers: {
-                ...options.headers,
-                "Accept": "application/json",
-            }
-        });
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
+}
 
-        // Se o erro for do lado do servidor (Railway fora do ar ou em crash), faz o failover
-        if (res.status >= 500 && !isRetry) {
-            console.warn("⚠️ Servidor principal retornou erro 5xx. A tentar o Failover (Render)...");
-            const backupUrl = url.replace(PRIMARY_URL, BACKUP_URL);
-            return authorizedFetch(backupUrl, options, true);
+// ================================
+// AUTHORIZED FETCH
+// ================================
+export async function authorizedFetch(
+    url: string,
+    options: RequestInit = {}
+): Promise<any> {
+    const token = localStorage.getItem("token");
+
+    const endpoint = url.startsWith("/") ? url : `/${url}`;
+
+    /*
+     * IMPORTANTE:
+     * Não enviar Content-Type: application/json em GET/DELETE sem body.
+     * Caso contrário, Fastify pode responder 400 por receber JSON vazio.
+     */
+    const headers = new Headers(options.headers);
+
+    if (options.body && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
+
+    if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    async function makeRequest(baseUrl: string): Promise<any> {
+        const cleanBase = baseUrl.replace(/\/$/, "");
+        const fullUrl = `${cleanBase}${endpoint}`;
+
+        console.log(`🚀 Request -> ${fullUrl}`);
+
+        let response: Response;
+
+        try {
+            response = await fetch(fullUrl, {
+                ...options,
+                headers,
+            });
+        } catch (error) {
+            console.error("❌ Network request failed:", error);
+            throw error;
         }
 
-        if (res.status === 403) {
-            window.location.href = "/unauthorized";
-            return;
+        console.log("📡 STATUS:", response.status);
+
+        const payload = await parseResponseBody(response);
+
+        if (response.status === 401) {
+            console.error("❌ Unauthorized:", payload);
+            throw new ApiError("UNAUTHORIZED", response.status, payload);
         }
 
-        if (res.status === 401) {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-            return;
+        if (response.status === 403) {
+            console.error("❌ Forbidden:", payload);
+            throw new ApiError("FORBIDDEN", response.status, payload);
         }
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-
-        return data;
-
-    } catch (error) {
-        // Se houver um erro de rede total (ex: DNS do Railway não responde), entra aqui
-        if (!isRetry) {
-            console.warn("⚡ Falha de conexão com o Railway. A redirecionar para o Failover (Render)...");
-            const backupUrl = url.replace(PRIMARY_URL, BACKUP_URL);
-            return authorizedFetch(backupUrl, options, true);
+        if (!response.ok) {
+            console.error("❌ HTTP ERROR BODY:", payload);
+            throw new ApiError(
+                `HTTP_${response.status}`,
+                response.status,
+                payload
+            );
         }
 
-        // Se até o backup falhar, propaga o erro final
+        return payload;
+    }
+
+    // ================================
+    // AUTO RECOVERY TO RAILWAY
+    // ================================
+    if (
+        activeBackend === "render" &&
+        Date.now() - lastFailover > FAILOVER_RECOVERY_TIME
+    ) {
+        console.log("♻️ Tentando recuperar Railway...");
+        activeBackend = "railway";
+    }
+
+    try {
+        const currentUrl =
+            activeBackend === "railway"
+                ? PRIMARY_URL
+                : BACKUP_URL;
+
+        return await makeRequest(currentUrl);
+
+    } catch (error: any) {
+        console.warn("⚠️ Backend ativo falhou:", error);
+
+        if (
+            error?.message === "UNAUTHORIZED" ||
+            error?.message === "FORBIDDEN" ||
+            error?.name === "AbortError"
+        ) {
+            throw error;
+        }
+
+        /*
+         * Só fazemos failover automático em GET.
+         * Nunca repetimos automaticamente DELETE/PATCH/POST,
+         * para não criar ações duplicadas ou falsos sucessos.
+         */
+        if (
+            activeBackend === "railway" &&
+            canFailover(error, options)
+        ) {
+            console.log("🔄 Mudando para Render...");
+
+            activeBackend = "render";
+            lastFailover = Date.now();
+
+            return await makeRequest(BACKUP_URL);
+        }
+
         throw error;
     }
 }
 
-// 1. LISTAR PEDIDOS
-export async function getRequests(token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/requests`, {
-        headers: { Authorization: `Bearer ${token}` }
-    });
-}
+// ================================
+// MAIN DASHBOARD API
+// ================================
 
-// 2. ATUALIZAR STATUS
-export async function updateRequestStatus(id: number, status: string, token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/requests/${id}/status`, {
+// Dashboard principal: lista simples de requests
+export const getRequests = (signal?: AbortSignal) =>
+    authorizedFetch("/requests", {
+        signal,
+    });
+
+// Dashboard principal: cards Active Users / Page Views / Top Service
+export const getDashboardAnalytics = (signal?: AbortSignal) =>
+    authorizedFetch("/analytics", {
+        signal,
+    });
+
+// Atualizar estado de um request
+export const updateRequestStatus = (
+    id: number,
+    status: string
+) =>
+    authorizedFetch(`/requests/${id}/status`, {
         method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status }),
     });
-}
 
-// 3. OBTER ANALYTICS (Agora aceita o período dinamicamente)
-export async function getAnalytics(token: string, period: "7d" | "30d" | "90d" = "7d") {
-    return authorizedFetch(`${PRIMARY_URL}/analytics?period=${period}`, {
-        headers: { Authorization: `Bearer ${token}` }
-    });
-}
-
-// 🗑️ 4. ELIMINAR PEDIDO PERMANENTEMENTE
-export async function deleteRequest(id: number, token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/requests/${id}`, {
+// Apagar request
+export const deleteRequest = (id: number) =>
+    authorizedFetch(`/requests/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
     });
-}
 
-// 🧹 5. LIMPAR LOGS DE ATIVIDADE
-export async function clearActivityLogs(token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/logs`, {
+// Limpar activity logs
+export const clearActivityLogs = () =>
+    authorizedFetch("/logs", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
     });
-}
 
-export async function logEmailSent(clientName: string, service: string, token: string) {
-    return authorizedFetch(`${PRIMARY_URL}/logs/email`, {
+// Criar log ao abrir resposta por email
+export const logEmailSent = (
+    clientName: string,
+    service: string
+) =>
+    authorizedFetch("/logs/email", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ clientName, service })
+        body: JSON.stringify({
+            clientName,
+            service,
+        }),
     });
-}
+
+// ================================
+// GA4 ANALYTICS DASHBOARD API
+// ================================
+
+/*
+ * Esta é a rota do Google Analytics real.
+ * Não trocar para /analytics.
+ */
+export const getAnalytics = (
+    period: string = "7d",
+    signal?: AbortSignal
+) =>
+    authorizedFetch(
+        `/admin/analytics?period=${encodeURIComponent(period)}`,
+        {
+            signal,
+        }
+    );
