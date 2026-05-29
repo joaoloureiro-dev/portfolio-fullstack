@@ -326,7 +326,7 @@ export async function getGA4Data(period = "7d") {
                         }
                     ],
 
-                    limit: 10
+                    limit: 20
                 });
 
             countries =

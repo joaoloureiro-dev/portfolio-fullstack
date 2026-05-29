@@ -428,10 +428,10 @@ export default function AnalyticsDashboard() {
             </section>
 
             {/* COUNTRIES */}
-            <section className="bg-(--color-bg-secondary) border border-(--color-border) p-6 rounded-3xl mt-8 min-w-0">
+            <section className="bg-(--color-bg-secondary) border border-(--color-border) p-8 rounded-3xl mt-8 min-w-0">
 
-                <div className="mb-6">
-                    <h2 className="text-sm font-black uppercase tracking-widest text-white">
+                <div className="mb-8">
+                    <h2 className="text-base font-black uppercase tracking-widest text-white">
                         Top Countries
                     </h2>
 
@@ -440,7 +440,12 @@ export default function AnalyticsDashboard() {
                     </p>
                 </div>
 
-                <div className="w-full h-[90] min-h-[90] min-w-0">
+                <div
+                    className="w-full min-w-0"
+                    style={{
+                        height: `${Math.max(520, (data.countries.length || 1) * 46)}px`
+                    }}
+                >
                     {loading ? (
                         <div className="w-full h-full flex items-center justify-center">
                             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest animate-pulse">
@@ -460,10 +465,11 @@ export default function AnalyticsDashboard() {
                                 layout="vertical"
                                 margin={{
                                     top: 0,
-                                    right: 20,
-                                    left: 20,
-                                    bottom: 0
+                                    right: 40,
+                                    left: 45,
+                                    bottom: 10
                                 }}
+                                barCategoryGap="28%"
                             >
                                 <CartesianGrid
                                     strokeDasharray="3 3"
@@ -475,7 +481,7 @@ export default function AnalyticsDashboard() {
                                 <XAxis
                                     type="number"
                                     stroke="#71717a"
-                                    fontSize={10}
+                                    fontSize={11}
                                     tickLine={false}
                                     axisLine={false}
                                     allowDecimals={false}
@@ -485,10 +491,16 @@ export default function AnalyticsDashboard() {
                                     type="category"
                                     dataKey="country"
                                     stroke="#71717a"
-                                    fontSize={11}
+                                    fontSize={12}
                                     tickLine={false}
                                     axisLine={false}
-                                    width={110}
+                                    width={145}
+                                    interval={0}
+                                    tick={{
+                                        fill: "#a1a1aa",
+                                        fontSize: 12,
+                                        fontWeight: 600
+                                    }}
                                 />
 
                                 <Tooltip
@@ -503,6 +515,10 @@ export default function AnalyticsDashboard() {
                                         color: "#ffffff",
                                         fontSize: "12px"
                                     }}
+                                    formatter={(value) => [
+                                        Number(value).toLocaleString(),
+                                        "Visitors"
+                                    ]}
                                 />
 
                                 <Bar
@@ -510,7 +526,7 @@ export default function AnalyticsDashboard() {
                                     name="Visitors"
                                     fill="var(--color-primary)"
                                     radius={[0, 8, 8, 0]}
-                                    barSize={20}
+                                    barSize={26}
                                 />
                             </BarChart>
                         </ResponsiveContainer>

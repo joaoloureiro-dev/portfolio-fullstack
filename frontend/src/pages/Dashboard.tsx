@@ -421,7 +421,7 @@ export default function Dashboard() {
                     </span>
                 </header>
 
-                <div className="w-full h-[60] min-h-[60] min-w-0">
+                <div className="w-full h-[100] min-h-[100] min-w-0">
                     {loading ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-4">
                             <div className="w-8 h-8 border-2 border-orange-500/10 border-t-orange-500 rounded-full animate-spin" />
