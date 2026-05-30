@@ -11,7 +11,7 @@ async function upgradeUser() {
         // 2. Atualiza o teu email e o utilizador 'admin'
         const res = await pool.query(
             "UPDATE users SET role = 'admin' WHERE username IN ($1, $2) RETURNING username, role",
-            ["joaoloureiro.dev@gmail.com", "admin"]
+            [process.env.ADMIN_EMAIL || "admin@exemplo.com", "admin"]
         );
 
         if (res.rowCount > 0) {
